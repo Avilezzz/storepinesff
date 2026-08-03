@@ -38,7 +38,7 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
   ])
 
   const reclamos = reclamosRaw as { pin_code_id: number | null }[] | null
-  const urlCanje = (canje?.value as { url?: string } | null)?.url ?? 'https://reward.ff.garena.com/'
+  const urlCanje = (canje?.value as { url?: string } | null)?.url ?? 'https://redeem.wik.do/'
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:py-9">
@@ -75,7 +75,7 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
       <div className="tarjeta mt-5 p-4">
         <p className="subtitulo">Cómo canjear</p>
         <ol className="mt-2.5 space-y-1.5 text-sm leading-relaxed text-tenue">
-          <li className="flex gap-2.5"><span className="text-marca">1.</span> Entra al sitio oficial de recompensas de Garena.</li>
+          <li className="flex gap-2.5"><span className="text-marca">1.</span> Entra al sitio de canje con tu cuenta de Free Fire.</li>
           <li className="flex gap-2.5"><span className="text-marca">2.</span> Inicia sesión con la misma cuenta de tu Free Fire.</li>
           <li className="flex gap-2.5"><span className="text-marca">3.</span> Pega el código y confirma. Los diamantes llegan a esa cuenta.</li>
         </ol>

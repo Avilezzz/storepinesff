@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Gem, ShoppingCart, Wallet, Package, ArrowUpCircle, Settings, LogOut } from 'lucide-react'
+import { ShoppingCart, Wallet, Package, ArrowUpCircle, Settings, LogOut } from 'lucide-react'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { useSesion } from '@/lib/sesion'
 import { usd } from '@/lib/format'
@@ -48,9 +49,8 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-linea bg-base/80 backdrop-blur-xl">
       <nav className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4">
         <Link href="/" className="flex items-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-marca text-[#150c04]">
-            <Gem size={15} strokeWidth={2.5} />
-          </span>
+          <Image src="/logo.png" alt="PinStore FF" width={56} height={28}
+            className="h-7 w-auto" priority />
           <span className="text-[0.9375rem] font-semibold tracking-tight">
             PinStore <span className="text-marca">FF</span>
           </span>

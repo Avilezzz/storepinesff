@@ -51,9 +51,6 @@ export default function Navbar() {
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.png" alt="PinStore FF" width={56} height={28}
             className="h-7 w-auto" priority />
-          <span className="text-[0.9375rem] font-semibold tracking-tight">
-            PinStore <span className="text-marca">FF</span>
-          </span>
         </Link>
 
         <div className="flex-1" />

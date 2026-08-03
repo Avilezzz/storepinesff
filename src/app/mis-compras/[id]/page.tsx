@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { supabaseServer } from '@/lib/supabase'
 import { usd, fecha } from '@/lib/format'
 import PinesEntregados, { type Pin } from '@/components/PinesEntregados'
@@ -38,7 +38,12 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
   ])
 
   const reclamos = reclamosRaw as { pin_code_id: number | null }[] | null
-  const urlCanje = (canje?.value as { url?: string } | null)?.url ?? 'https://redeem.wik.do/'
+
+  // url_embed se carga dentro del modal; url es el respaldo para pestaña nueva.
+  // Ambas se editan en app_settings sin tocar código.
+  const ajuste = canje?.value as { url?: string; url_embed?: string } | null
+  const urlExterna = ajuste?.url ?? 'https://redeem.wik.do/'
+  const urlEmbed = ajuste?.url_embed ?? urlExterna
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:py-9">
@@ -70,19 +75,9 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
       <PinesEntregados
         pines={(pines as Pin[]) ?? []}
         reclamados={new Set((reclamos ?? []).map((r) => r.pin_code_id))}
+        urlEmbed={urlEmbed}
+        urlExterna={urlExterna}
       />
-
-      <div className="tarjeta mt-5 p-4">
-        <p className="subtitulo">Cómo canjear</p>
-        <ol className="mt-2.5 space-y-1.5 text-sm leading-relaxed text-tenue">
-          <li className="flex gap-2.5"><span className="text-marca">1.</span> Entra al sitio de canje con tu cuenta de Free Fire.</li>
-          <li className="flex gap-2.5"><span className="text-marca">2.</span> Inicia sesión con la misma cuenta de tu Free Fire.</li>
-          <li className="flex gap-2.5"><span className="text-marca">3.</span> Pega el código y confirma. Los diamantes llegan a esa cuenta.</li>
-        </ol>
-        <a href={urlCanje} target="_blank" rel="noopener noreferrer" className="btn btn-suave mt-4 w-full sm:w-auto">
-          Abrir sitio de canje <ExternalLink size={14} />
-        </a>
-      </div>
     </div>
   )
 }

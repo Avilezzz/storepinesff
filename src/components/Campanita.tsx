@@ -70,7 +70,7 @@ export default function Campanita({ uid }: { uid: string }) {
       </button>
 
       {abierto && (
-        <div className="absolute right-0 mt-2 max-h-[26rem] w-[min(20rem,calc(100vw-4.5rem))] overflow-y-auto rounded-xl border border-linea bg-panel shadow-2xl">
+        <div className="fixed left-1/2 top-14 z-50 max-h-[26rem] w-[calc(100vw-2rem)] -translate-x-1/2 overflow-y-auto rounded-xl border border-linea bg-panel shadow-2xl sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:translate-x-0">
           <p className="etiqueta border-b border-linea px-4 py-2.5">Notificaciones</p>
 
           {cargando ? (

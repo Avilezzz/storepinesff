@@ -1,0 +1,89 @@
+'use client'
+
+import { Suspense, useState } from 'react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Gem, Loader2, Eye, EyeOff } from 'lucide-react'
+import { toast } from 'sonner'
+import { supabaseBrowser } from '@/lib/supabase-client'
+import { mensajeError } from '@/lib/format'
+
+export default function Login() {
+  return (
+    <Suspense fallback={null}>
+      <Formulario />
+    </Suspense>
+  )
+}
+
+function Formulario() {
+  const sb = supabaseBrowser()
+  const router = useRouter()
+  const volver = useSearchParams().get('volver') ?? '/'
+  const [email, setEmail] = useState('')
+  const [pass, setPass] = useState('')
+  const [ver, setVer] = useState(false)
+  const [cargando, setCargando] = useState(false)
+
+  async function enviar(e: React.FormEvent) {
+    e.preventDefault()
+    setCargando(true)
+
+    const { error } = await sb.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: pass,
+    })
+
+    if (error) {
+      setCargando(false)
+      return toast.error(mensajeError(error.message))
+    }
+
+    // Cliente o admin entran por la misma puerta; el rol decide qué ve después.
+    router.push(volver)
+    router.refresh()
+  }
+
+  return (
+    <div className="aura flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4 py-10">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 text-center">
+          <span className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-marca text-[#150c04]">
+            <Gem size={21} strokeWidth={2.4} />
+          </span>
+          <h1 className="titulo">Ingresa a tu cuenta</h1>
+        </div>
+
+        <form onSubmit={enviar} className="tarjeta space-y-4 p-5">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-tenue">Correo electrónico</label>
+            <input type="email" required autoComplete="email" inputMode="email" className="campo"
+              value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@gmail.com" />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-tenue">Contraseña</label>
+            <div className="relative">
+              <input type={ver ? 'text' : 'password'} required autoComplete="current-password"
+                className="campo pr-11" value={pass} onChange={(e) => setPass(e.target.value)}
+                placeholder="••••••••" />
+              <button type="button" onClick={() => setVer((v) => !v)}
+                aria-label={ver ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                className="btn-icono absolute right-1 top-1/2 -translate-y-1/2">
+                {ver ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <button disabled={cargando} className="btn btn-primario w-full">
+            {cargando ? <><Loader2 size={15} className="animate-spin" /> Ingresando…</> : 'Ingresar'}
+          </button>
+        </form>
+
+        <p className="mt-5 text-center text-sm text-tenue">
+          ¿No tienes cuenta? <Link href="/registro" className="font-medium text-marca">Regístrate</Link>
+        </p>
+      </div>
+    </div>
+  )
+}

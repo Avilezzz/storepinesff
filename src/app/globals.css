@@ -1,0 +1,159 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-base: #0a0c10;
+  --color-panel: #12151c;
+  --color-panel2: #191d26;
+  --color-linea: #232833;
+  --color-tenue: #8a92a6;
+  --color-marca: #ff7a18;
+  --color-marca2: #ff4d4d;
+  --color-ok: #22c55e;
+  --color-alerta: #f59e0b;
+  --color-error: #ef4444;
+}
+
+html {
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;   /* sin flash azul al tocar en móvil */
+}
+
+body {
+  background: var(--color-base);
+  color: #e7eaf0;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Tipografía ────────────────────────────────────────────────────────────
+   Una sola escala para toda la app. Los títulos van apretados y sin peso
+   excesivo: el contraste lo dan el tamaño y el espacio, no la negrita.     */
+.titulo {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.subtitulo {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.etiqueta {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-tenue);
+}
+.cifra { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+/* Resplandor de marca, puramente decorativo. */
+.aura {
+  background:
+    radial-gradient(55rem 26rem at 15% -20%, rgb(255 122 24 / 0.13), transparent 62%),
+    radial-gradient(45rem 24rem at 88% -10%, rgb(255 77 77 / 0.09), transparent 62%);
+}
+
+.tarjeta {
+  background: var(--color-panel);
+  border: 1px solid var(--color-linea);
+  border-radius: 0.875rem;
+}
+
+/* ── Formularios ───────────────────────────────────────────────────────── */
+.campo {
+  width: 100%;
+  background: var(--color-panel2);
+  border: 1px solid var(--color-linea);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 1rem;                 /* 16px evita que iOS haga zoom al enfocar */
+  color: #e7eaf0;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.campo:focus {
+  border-color: var(--color-marca);
+  box-shadow: 0 0 0 3px rgb(255 122 24 / 0.12);
+}
+.campo::placeholder { color: #59617a; }
+
+select.campo {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a92a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  padding-right: 2rem;
+}
+
+/* ── Botones ───────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  border-radius: .5rem; padding: .5625rem .875rem;
+  font-size: .875rem; font-weight: 500;
+  white-space: nowrap; cursor: pointer;
+  transition: background-color .15s, color .15s, opacity .15s, filter .15s;
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--color-marca); outline-offset: 2px; }
+
+.btn-primario {
+  background: var(--color-marca);
+  color: #150c04;
+  font-weight: 600;
+}
+.btn-primario:not(:disabled):hover { filter: brightness(1.08); }
+
+.btn-suave {
+  background: var(--color-panel2);
+  border: 1px solid var(--color-linea);
+  color: #e7eaf0;
+}
+.btn-suave:not(:disabled):hover { background: #212734; }
+
+.btn-peligro { background: var(--color-error); color: #fff; font-weight: 600; }
+.btn-peligro:not(:disabled):hover { filter: brightness(1.08); }
+
+/* Botón sin fondo: solo el icono. El fondo aparece al pasar por encima. */
+.btn-icono {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 2.25rem; height: 2.25rem;
+  border-radius: .5rem; padding: 0 .5rem;
+  color: var(--color-tenue);
+  background: transparent; border: 0; cursor: pointer;
+  transition: background-color .15s, color .15s;
+}
+.btn-icono:hover { background: var(--color-panel2); color: #e7eaf0; }
+.btn-icono:focus-visible { outline: 2px solid var(--color-marca); outline-offset: 2px; }
+.btn-icono:disabled { opacity: .4; cursor: not-allowed; }
+.btn-icono.activo { color: var(--color-marca); }
+
+/* Enlace de texto discreto. */
+.enlace {
+  display: inline-flex; align-items: center; gap: .25rem;
+  font-size: .875rem; font-weight: 500; color: var(--color-tenue);
+  transition: color .15s;
+}
+.enlace:hover { color: var(--color-marca); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: .3125rem;
+  border-radius: 999px; padding: .1875rem .5rem;
+  font-size: .6875rem; font-weight: 500; white-space: nowrap;
+}
+
+/* ── Detalles ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #262c3a; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #333a4b; }
+
+/* Oculta la barra en carruseles horizontales de móvil. */
+.sin-barra { scrollbar-width: none; }
+.sin-barra::-webkit-scrollbar { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

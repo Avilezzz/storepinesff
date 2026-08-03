@@ -49,8 +49,8 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-linea bg-base/80 backdrop-blur-xl">
       <nav className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.png" alt="PinStore FF" width={56} height={28}
-            className="h-7 w-auto" priority />
+          <Image src="/logo.png" alt="PinStore FF" width={80} height={40}
+            className="h-9 w-auto" priority />
         </Link>
 
         <div className="flex-1" />

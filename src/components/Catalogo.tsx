@@ -73,7 +73,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
   }
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-8">
+    <section id="catalogo" className="mx-auto max-w-6xl scroll-mt-16 px-4 py-8">
       <div className="mb-4 flex items-baseline justify-between">
         <h2 className="titulo">Elige tu recarga</h2>
         <span className="text-xs text-tenue">{productos.length} opciones</span>

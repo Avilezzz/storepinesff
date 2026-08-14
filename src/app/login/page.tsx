@@ -1,12 +1,13 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Gem, Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { mensajeError } from '@/lib/format'
+import BotonGoogle, { Separador } from '@/components/BotonGoogle'
 
 export default function Login() {
   return (
@@ -19,11 +20,18 @@ export default function Login() {
 function Formulario() {
   const sb = supabaseBrowser()
   const router = useRouter()
-  const volver = useSearchParams().get('volver') ?? '/'
+  const params = useSearchParams()
+  const volver = params.get('volver') ?? '/'
+  const errorOAuth = params.get('error')
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [ver, setVer] = useState(false)
   const [cargando, setCargando] = useState(false)
+
+  // El callback de Google devuelve aquí el fallo, si lo hubo.
+  useEffect(() => {
+    if (errorOAuth) toast.error(errorOAuth)
+  }, [errorOAuth])
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
@@ -78,6 +86,9 @@ function Formulario() {
           <button disabled={cargando} className="btn btn-primario w-full">
             {cargando ? <><Loader2 size={15} className="animate-spin" /> Ingresando…</> : 'Ingresar'}
           </button>
+
+          <Separador />
+          <BotonGoogle volver={volver} />
         </form>
 
         <p className="mt-5 text-center text-sm text-tenue">

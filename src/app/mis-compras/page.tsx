@@ -1,20 +1,21 @@
 import Link from 'next/link'
-import { Package, ChevronRight, Gem } from 'lucide-react'
+import { Package, ChevronRight } from 'lucide-react'
 import { supabaseServer } from '@/lib/supabase'
 import { usd, fecha } from '@/lib/format'
+import ImagenProducto from '@/components/ImagenProducto'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MisCompras() {
   type Orden = {
     id: number; numero: string; total_cents: number; estado: string; created_at: string
-    order_items: { cantidad: number; producto_nombre: string }[]
+    order_items: { cantidad: number; producto_nombre: string; products: { imagen_url: string | null } | null }[]
   }
 
   const sb = await supabaseServer()
   const { data, error } = await sb
     .from('orders')
-    .select('id, numero, total_cents, estado, created_at, order_items(cantidad, producto_nombre)')
+    .select('id, numero, total_cents, estado, created_at, order_items(cantidad, producto_nombre, products(imagen_url))')
     .order('id', { ascending: false })
     .limit(50)
 
@@ -36,9 +37,11 @@ export default async function MisCompras() {
           {ordenes.map((o) => (
             <Link key={o.id} href={`/mis-compras/${o.id}`}
               className="tarjeta flex items-center gap-3 p-3.5 transition hover:border-marca/40">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-panel2 text-marca">
-                <Gem size={17} />
-              </span>
+              <ImagenProducto
+                url={o.order_items[0]?.products?.imagen_url}
+                alt={o.order_items[0]?.producto_nombre ?? 'Producto'}
+                sizes="56px"
+                className="h-14 w-11 shrink-0 rounded-lg" />
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">

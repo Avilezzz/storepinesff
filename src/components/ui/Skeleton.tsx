@@ -8,15 +8,14 @@ export function Skeleton({ className = '' }: { className?: string }) {
 
 export function SkeletonTarjetas({ n = 6 }: { n?: number }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {Array.from({ length: n }, (_, i) => (
-        <div key={i} className="tarjeta space-y-4 p-5">
-          <div className="flex items-start justify-between">
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-5 w-16 rounded-full" />
+        <div key={i} className="tarjeta overflow-hidden">
+          <Skeleton className="aspect-4/5 w-full rounded-none" />
+          <div className="space-y-2.5 p-3">
+            <Skeleton className="h-6 w-20" />
+            <Skeleton className="h-9 w-full rounded-lg" />
           </div>
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-10 w-full rounded-lg" />
         </div>
       ))}
     </div>

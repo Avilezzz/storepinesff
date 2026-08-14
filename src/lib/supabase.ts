@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { cookieDeSesion } from './cookies-sesion'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -23,7 +24,8 @@ export async function supabaseServer() {
         // En un Server Component las cookies son de solo lectura; el refresco
         // de sesión lo hace el middleware, así que aquí se ignora sin ruido.
         try {
-          list.forEach(({ name, value, options }) => store.set(name, value, options))
+          list.forEach(({ name, value, options }) =>
+            store.set(name, value, cookieDeSesion(options)))
         } catch {}
       },
     },

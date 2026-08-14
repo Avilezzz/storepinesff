@@ -6,13 +6,13 @@ import { useRouter } from 'next/navigation'
 import { Upload, CheckCircle2, Loader2, FileImage, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
-import { aCentavos, usd, mensajeError } from '@/lib/format'
+import { aCentavos, usd, mensajeError, hoyEcuador } from '@/lib/format'
 
 export type Banco = { id: number; banco: string }
 
-const MINIMO = 500          // $5.00 en centavos
+const MINIMO = 200          // $2.00 en centavos
 const MAX_BYTES = 5 * 1024 * 1024
-const ATAJOS = [500, 1000, 2000, 5000]
+const ATAJOS = [200, 500, 1000, 2000]
 
 export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; pendientes: number }) {
   const sb = supabaseBrowser()
@@ -20,7 +20,7 @@ export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; p
   const [monto, setMonto] = useState('')
   const [banco, setBanco] = useState(bancos[0]?.banco ?? '')
   const [referencia, setReferencia] = useState('')
-  const [fechaTr, setFechaTr] = useState(() => new Date().toISOString().slice(0, 10))
+  const [fechaTr, setFechaTr] = useState(hoyEcuador)
   const [nota, setNota] = useState('')
   const [archivo, setArchivo] = useState<File | null>(null)
   const [ok, setOk] = useState(false)
@@ -28,12 +28,12 @@ export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; p
 
   const cents = aCentavos(monto)
   const bloqueado = pendientes >= 3
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = hoyEcuador()
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
 
-    if (cents === null)           return toast.error('Escribe un monto válido, por ejemplo 5.00')
+    if (cents === null)           return toast.error('Escribe un monto válido, por ejemplo 2.00')
     if (cents < MINIMO)           return toast.error(`El monto mínimo de recarga es ${usd(MINIMO)}.`)
     if (!archivo)                 return toast.error('Adjunta la foto o el PDF del comprobante.')
     if (archivo.size > MAX_BYTES) return toast.error('El archivo pesa más de 5 MB.')
@@ -107,7 +107,7 @@ export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; p
 
       <div>
         <label className="mb-1.5 block text-xs font-medium text-tenue">Monto transferido (USD)</label>
-        <input className="campo" inputMode="decimal" required placeholder="10.00"
+        <input className="campo" inputMode="decimal" required placeholder="2.00"
           value={monto} onChange={(e) => setMonto(e.target.value)} />
         <div className="sin-barra mt-2 flex gap-1.5 overflow-x-auto">
           {ATAJOS.map((c) => (

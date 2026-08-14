@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { FileText, Check, X, Inbox, Loader2, Landmark } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
-import { usd, fecha, mensajeError } from '@/lib/format'
+import { usd, fecha, soloFecha, mensajeError } from '@/lib/format'
 import Avatar from '../ui/Avatar'
 import Dialogo from '../ui/Dialogo'
 
@@ -111,7 +111,7 @@ export default function AdminRecargas(
               <dl className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-linea pt-3.5 text-sm sm:grid-cols-4">
                 <D k="Banco" v={s.banco} icono={<Landmark size={12} />} />
                 <D k="Referencia" v={s.numero_referencia} mono />
-                <D k="Transferido" v={s.fecha_transferencia} />
+                <D k="Transferido" v={soloFecha(s.fecha_transferencia)} />
                 <D k="Solicitado" v={fecha(s.created_at)} />
               </dl>
 

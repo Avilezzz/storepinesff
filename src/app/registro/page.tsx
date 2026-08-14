@@ -7,6 +7,7 @@ import { Gem, Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { mensajeError } from '@/lib/format'
+import BotonGoogle, { Separador } from '@/components/BotonGoogle'
 
 export default function Registro() {
   const sb = supabaseBrowser()
@@ -86,6 +87,9 @@ export default function Registro() {
           <button disabled={cargando} className="btn btn-primario w-full">
             {cargando ? <><Loader2 size={15} className="animate-spin" /> Creando cuenta…</> : 'Crear cuenta'}
           </button>
+
+          <Separador />
+          <BotonGoogle />
 
           <p className="text-center text-[11px] leading-relaxed text-tenue">
             Al registrarte aceptas que el saldo es crédito de tienda y no se

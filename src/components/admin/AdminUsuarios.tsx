@@ -8,6 +8,16 @@ import { supabaseBrowser } from '@/lib/supabase-client'
 import { usd, fecha, aCentavos, mensajeError } from '@/lib/format'
 import Avatar from '../ui/Avatar'
 
+const ATAJOS_MONTO = [200, 500, 1000, 2000]
+
+// Plantillas de motivo: el ajuste manual no tiene comprobante adjunto, así que
+// esta frase es a la vez el respaldo en el libro mayor y el texto que le llega
+// al usuario en la notificación. Se puede editar después de elegirla.
+const MOTIVOS: Record<'acreditar' | 'descontar', string[]> = {
+  acreditar: ['Saldo acreditado', 'Recarga manual', 'Bono', 'Corrección'],
+  descontar: ['Ajuste de saldo', 'Corrección', 'Reverso'],
+}
+
 export type UsuarioFila = {
   id: string; nombre: string; email: string; telefono: string
   rol: 'CLIENTE' | 'ADMIN'; activo: boolean; created_at: string
@@ -88,6 +98,13 @@ function ModalAjuste({ usuario, onCerrar, onListo }: {
   const saldo = usuario.wallets?.balance_cents ?? 0
   const resultante = saldo + (cents ?? 0) * signo
 
+  /** Al cambiar de sentido se descarta la plantilla anterior: "Pago en efectivo"
+   *  no tiene sentido en un descuento. Un motivo escrito a mano se respeta. */
+  function cambiarSigno(nuevo: 1 | -1) {
+    if (signo !== nuevo && Object.values(MOTIVOS).flat().includes(motivo)) setMotivo('')
+    setSigno(nuevo)
+  }
+
   async function aplicar() {
     if (cents === null || cents <= 0)  return toast.error('Monto inválido.')
     if (!motivo.trim())                return toast.error('Escribe el motivo del ajuste.')
@@ -118,11 +135,11 @@ function ModalAjuste({ usuario, onCerrar, onListo }: {
         </div>
 
         <div className="mt-4 flex gap-2">
-          <button onClick={() => setSigno(1)}
+          <button onClick={() => cambiarSigno(1)}
             className={`btn flex-1 ${signo === 1 ? 'btn-primario' : 'btn-suave'}`}>
             <Plus size={15} /> Acreditar
           </button>
-          <button onClick={() => setSigno(-1)}
+          <button onClick={() => cambiarSigno(-1)}
             className={`btn flex-1 ${signo === -1 ? 'btn-peligro' : 'btn-suave'}`}>
             <Minus size={15} /> Descontar
           </button>
@@ -130,15 +147,33 @@ function ModalAjuste({ usuario, onCerrar, onListo }: {
 
         <div className="mt-3.5">
           <label className="mb-1.5 block text-xs font-medium text-tenue">Monto (USD)</label>
-          <input className="campo" inputMode="decimal" placeholder="5.00" autoFocus
+          <input className="campo" inputMode="decimal" placeholder="2.00" autoFocus
             value={monto} onChange={(e) => setMonto(e.target.value)} />
+          <div className="sin-barra mt-2 flex gap-1.5 overflow-x-auto">
+            {ATAJOS_MONTO.map((c) => (
+              <button key={c} type="button" onClick={() => setMonto((c / 100).toFixed(2))}
+                className={`chip shrink-0 border px-2.5 py-1.5 transition ${
+                  cents === c ? 'border-marca bg-marca/10 text-marca' : 'border-linea bg-panel2 text-tenue'}`}>
+                {usd(c)}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="mt-3.5">
           <label className="mb-1.5 block text-xs font-medium text-tenue">
-            Motivo (queda en el libro mayor)
+            Motivo (queda en el libro mayor y lo ve el usuario)
           </label>
-          <input className="campo" placeholder="Ej. corrección de recarga duplicada"
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {MOTIVOS[signo === 1 ? 'acreditar' : 'descontar'].map((m) => (
+              <button key={m} type="button" onClick={() => setMotivo(m)}
+                className={`chip shrink-0 border px-2.5 py-1.5 text-left transition ${
+                  motivo === m ? 'border-marca bg-marca/10 text-marca' : 'border-linea bg-panel2 text-tenue'}`}>
+                {m}
+              </button>
+            ))}
+          </div>
+          <input className="campo" placeholder="O escríbelo a mano"
             value={motivo} onChange={(e) => setMotivo(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && aplicar()} />
         </div>

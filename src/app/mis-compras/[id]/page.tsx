@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { supabaseServer } from '@/lib/supabase'
 import { usd, fecha } from '@/lib/format'
 import PinesEntregados, { type Pin } from '@/components/PinesEntregados'
+import ImagenProducto from '@/components/ImagenProducto'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,12 +17,13 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
     order_items: {
       id: number; producto_nombre: string; cantidad: number
       precio_unit_cents: number; subtotal_cents: number
+      products: { imagen_url: string | null } | null
     }[]
   }
 
   const { data } = await sb
     .from('orders')
-    .select('id, numero, total_cents, estado, created_at, order_items(id, producto_nombre, cantidad, precio_unit_cents, subtotal_cents)')
+    .select('id, numero, total_cents, estado, created_at, order_items(id, producto_nombre, cantidad, precio_unit_cents, subtotal_cents, products(imagen_url))')
     .eq('id', id)
     .maybeSingle()
 
@@ -62,7 +64,9 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
       <div className="tarjeta mt-4 divide-y divide-linea">
         {orden.order_items.map((i) => (
           <div key={i.id} className="flex items-center justify-between gap-3 p-3.5 text-sm">
-            <span className="min-w-0 truncate">
+            <ImagenProducto url={i.products?.imagen_url} alt={i.producto_nombre}
+              sizes="48px" iconoSize={15} className="h-12 w-9.5 shrink-0 rounded-md" />
+            <span className="min-w-0 flex-1 truncate">
               <span className="cifra font-medium">{i.cantidad}×</span> {i.producto_nombre}
             </span>
             <span className="cifra shrink-0 text-xs text-tenue">{usd(i.precio_unit_cents)} c/u</span>

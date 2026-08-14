@@ -3,17 +3,19 @@
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Minus, Plus, Trash2, ShoppingCart, Gem, Loader2, AlertCircle } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingCart, Loader2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { refrescarCarrito } from '@/lib/sesion'
 import { usd, mensajeError } from '@/lib/format'
+import ImagenProducto from './ImagenProducto'
 
 export type LineaCarrito = {
   cantidad: number
   producto: {
     id: string; nombre: string; diamantes: number
     precio_cents: number; stock_disponible: number; activo: boolean
+    imagen_url: string | null
   }
 }
 
@@ -81,9 +83,8 @@ export default function CarritoUI({ lineas, saldo }: { lineas: LineaCarrito[]; s
           return (
             <div key={p.id} className="tarjeta p-3.5">
               <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-panel2 text-marca">
-                  <Gem size={17} />
-                </span>
+                <ImagenProducto url={p.imagen_url} alt={p.nombre} sizes="56px"
+                  className="h-14 w-11 shrink-0 rounded-lg" />
 
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{p.nombre}</p>

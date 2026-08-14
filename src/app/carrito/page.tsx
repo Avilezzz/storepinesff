@@ -11,7 +11,7 @@ export default async function Carrito() {
 
   const [{ data: items }, { data: wallet }] = await Promise.all([
     sb.from('cart_items')
-      .select('cantidad, products(id, nombre, diamantes, precio_cents, stock_disponible, activo)')
+      .select('cantidad, products(id, nombre, diamantes, precio_cents, stock_disponible, activo, imagen_url)')
       .eq('user_id', user!.id),
     sb.from('wallets').select('balance_cents').eq('user_id', user!.id).single(),
   ])

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ShoppingCart, Wallet, Package, ArrowUpCircle, Settings, LogOut } from 'lucide-react'
+import { ShoppingCart, Wallet, Package, ArrowUpCircle, Settings, LogOut, UserCog } from 'lucide-react'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { useSesion } from '@/lib/sesion'
 import { usd } from '@/lib/format'
@@ -15,6 +15,7 @@ const MENU = [
   { href: '/mis-compras', txt: 'Mis compras', Icono: Package },
   { href: '/billetera', txt: 'Mi billetera', Icono: Wallet },
   { href: '/recargar', txt: 'Recargar saldo', Icono: ArrowUpCircle },
+  { href: '/cuenta', txt: 'Mi cuenta', Icono: UserCog },
 ]
 
 export default function Navbar() {

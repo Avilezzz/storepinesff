@@ -12,12 +12,49 @@ export function aCentavos(texto: string): number | null {
   return Math.round(parseFloat(limpio) * 100)
 }
 
-export const fecha = (iso: string) =>
-  new Date(iso).toLocaleString('es-EC', {
-    timeZone: 'America/Guayaquil',
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
+/** Toda fecha que ve el usuario se muestra en hora de Ecuador (UTC-5), sin
+ *  importar dónde corra el servidor ni cómo tenga configurado el reloj él. */
+export const ZONA = 'America/Guayaquil'
+
+const FORMATO_FECHA = new Intl.DateTimeFormat('es-EC', {
+  timeZone: ZONA,
+  day: '2-digit', month: '2-digit', year: 'numeric',
+  hour: '2-digit', minute: '2-digit', hour12: true,
+})
+
+/**
+ * Fecha y hora de Ecuador como "14/08/2026, 12:36 p. m.".
+ *
+ * El texto se arma pieza por pieza en vez de dejárselo a `toLocaleString`:
+ * Node y el navegador traen versiones distintas de ICU y separan el "p. m."
+ * con espacios distintos (U+202F vs. espacio normal). Se ve igual, pero React
+ * lo considera texto diferente y rompe la hidratación.
+ */
+export function fecha(iso: string): string {
+  const partes = FORMATO_FECHA.formatToParts(new Date(iso))
+  const v = (t: Intl.DateTimeFormatPartTypes) => partes.find((x) => x.type === t)?.value ?? ''
+  const periodo = v('dayPeriod').replace(/[\u202f\u00a0]/g, ' ').toLowerCase()
+  return `${v('day')}/${v('month')}/${v('year')}, ${v('hour')}:${v('minute')} ${periodo}`.trimEnd()
+}
+
+/** Hoy en Ecuador como YYYY-MM-DD, para inputs de tipo date.
+ *  `toISOString()` daría la fecha en UTC: desde las 19:00 de Ecuador ya
+ *  devuelve el día siguiente. */
+export function hoyEcuador(): string {
+  const p = new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date())
+  const parte = (t: Intl.DateTimeFormatPartTypes) => p.find((x) => x.type === t)!.value
+  return `${parte('year')}-${parte('month')}-${parte('day')}`
+}
+
+/** Fecha suelta (columna `date`, sin hora) a formato local. Se parte el texto
+ *  a mano: pasarla por `new Date()` la leería como medianoche UTC y restaría
+ *  un día al mostrarla en Ecuador. */
+export function soloFecha(ymd: string): string {
+  const [a, m, d] = ymd.split('-')
+  return d && m && a ? `${d}/${m}/${a}` : ymd
+}
 
 /** Traduce los códigos de error que lanzan las funciones de Postgres. */
 export function mensajeError(raw: string | undefined): string {
@@ -29,6 +66,7 @@ export function mensajeError(raw: string | undefined): string {
     return p ? `Ya no queda stock de ${p}. Ajusta la cantidad.` : 'Ya no queda stock suficiente.'
   }
   if (m.includes('CARRITO_VACIO'))      return 'Tu carrito está vacío.'
+  if (m.includes('PERFIL_INCOMPLETO'))  return 'Agrega tu teléfono en Mi cuenta antes de comprar.'
   if (m.includes('YA_PROCESADA'))       return 'Esa solicitud ya fue procesada.'
   if (m.includes('RECLAMO_DUPLICADO'))  return 'Ya existe un reclamo para ese pin.'
   if (m.includes('MOTIVO_REQUERIDO'))   return 'Debes indicar un motivo.'

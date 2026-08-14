@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Gem, Plus, Check, Loader2 } from 'lucide-react'
+import { Plus, Check, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { useSesion, refrescarCarrito } from '@/lib/sesion'
 import { usd, mensajeError } from '@/lib/format'
+import ImagenProducto from './ImagenProducto'
 
 export type Producto = {
   id: string
@@ -15,6 +16,7 @@ export type Producto = {
   diamantes: number
   precio_cents: number
   stock_disponible: number
+  imagen_url: string | null
 }
 
 export default function Catalogo({ productos }: { productos: Producto[] }) {
@@ -77,8 +79,8 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
         <span className="text-xs text-tenue">{productos.length} opciones</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        {productos.map((p) => {
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {productos.map((p, i) => {
           const s = stock[p.id] ?? 0
           const agotado = s <= 0
           const enCurso = ocupado === p.id
@@ -86,33 +88,48 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
 
           return (
             <article key={p.id}
-              className={`tarjeta flex flex-col p-4 transition ${agotado ? 'opacity-55' : 'hover:border-marca/40'}`}>
-              <div className="flex items-start justify-between gap-2">
-                <Gem size={18} className="text-marca" strokeWidth={2} />
-                <span className={`chip ${
-                  agotado ? 'bg-error/12 text-error'
-                  : s <= 5 ? 'bg-alerta/12 text-alerta' : 'bg-ok/12 text-ok'}`}>
+              className={`tarjeta group flex flex-col overflow-hidden transition ${
+                agotado ? 'opacity-60' : 'hover:border-marca/40'}`}>
+              {/* La imagen es la card: el arte ya trae la cantidad de diamantes,
+                  así que abajo solo queda el precio y la acción. */}
+              <div className="relative">
+                <ImagenProducto
+                  url={p.imagen_url}
+                  alt={p.nombre}
+                  priority={i < 4}
+                  iconoSize={44}
+                  sizes="(min-width: 1024px) 260px, (min-width: 640px) 32vw, 46vw"
+                  zoom={!agotado}
+                  className={`aspect-4/5 w-full ${agotado ? 'grayscale' : ''}`}
+                />
+                <span className={`chip absolute left-2 top-2 backdrop-blur-sm ${
+                  agotado ? 'bg-error/25 text-error'
+                  : s <= 5 ? 'bg-alerta/25 text-alerta' : 'bg-base/70 text-ok'}`}>
                   {agotado ? 'Agotado' : `${s} disp.`}
                 </span>
               </div>
 
-              <p className="cifra mt-3 text-xl font-semibold sm:text-2xl">
-                {p.diamantes.toLocaleString('es-EC')}
-              </p>
-              <p className="text-xs text-tenue">diamantes</p>
+              <div className="flex flex-1 flex-col justify-end gap-2.5 p-3">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="cifra text-lg font-semibold text-marca sm:text-xl">{usd(p.precio_cents)}</p>
+                  <p className="cifra text-[11px] text-tenue">
+                    {p.diamantes.toLocaleString('es-EC')} <span className="sr-only">diamantes</span>
+                    <span aria-hidden> 💎</span>
+                  </p>
+                </div>
 
-              <p className="cifra mt-3 text-lg font-semibold text-marca sm:text-xl">{usd(p.precio_cents)}</p>
-
-              <button
-                onClick={() => agregar(p)}
-                disabled={agotado || enCurso || cargando}
-                className={`btn mt-3 w-full ${agotado ? 'btn-suave' : recien ? 'btn-suave' : 'btn-primario'}`}
-              >
-                {agotado ? 'Sin stock'
-                  : enCurso ? <Loader2 size={15} className="animate-spin" />
-                  : recien ? <><Check size={15} className="text-ok" /> Agregado</>
-                  : <><Plus size={15} /> Agregar</>}
-              </button>
+                <button
+                  onClick={() => agregar(p)}
+                  disabled={agotado || enCurso || cargando}
+                  aria-label={`Agregar ${p.nombre} al carrito`}
+                  className={`btn w-full ${agotado || recien ? 'btn-suave' : 'btn-primario'}`}
+                >
+                  {agotado ? 'Sin stock'
+                    : enCurso ? <Loader2 size={15} className="animate-spin" />
+                    : recien ? <><Check size={15} className="text-ok" /> Agregado</>
+                    : <><Plus size={15} /> Agregar</>}
+                </button>
+              </div>
             </article>
           )
         })}

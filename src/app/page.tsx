@@ -15,7 +15,7 @@ const VENTAJAS = [
 export default async function Home() {
   const { data } = await supabasePublic()
     .from('products')
-    .select('id, slug, nombre, diamantes, precio_cents, stock_disponible')
+    .select('id, slug, nombre, diamantes, precio_cents, stock_disponible, imagen_url')
     .eq('activo', true)
     .order('orden')
 

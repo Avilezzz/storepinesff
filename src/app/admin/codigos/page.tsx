@@ -6,10 +6,13 @@ export const dynamic = 'force-dynamic'
 export default async function Codigos() {
   const sb = await supabaseServer()
 
-  type Prod = { id: string; nombre: string; diamantes: number; stock_disponible: number; activo: boolean }
+  type Prod = {
+    id: string; nombre: string; diamantes: number
+    stock_disponible: number; activo: boolean; costo_cents: number
+  }
 
   const [{ data: prodRaw }, { data: pinesRaw }, { data: libresRaw }] = await Promise.all([
-    sb.from('products').select('id, nombre, diamantes, stock_disponible, activo').order('orden'),
+    sb.from('products').select('id, nombre, diamantes, stock_disponible, activo, costo_cents').order('orden'),
     sb.from('pin_codes').select('product_id, estado'),
     // Solo los que nadie compró: son los únicos que se pueden borrar.
     sb.from('pin_codes').select('id, codigo, product_id, created_at')

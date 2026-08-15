@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation'
 import { Upload, Loader2, CheckCircle2, Trash2, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
-import { mensajeError, fecha } from '@/lib/format'
+import { mensajeError, fecha, usd, aCentavos } from '@/lib/format'
 import Dialogo from '@/components/ui/Dialogo'
 
 export type ProductoStock = {
   id: string; nombre: string; diamantes: number
   stock_disponible: number; activo: boolean
   vendidos: number; defectuosos: number
+  costo_cents: number
 }
 
 export type PinLibre = {
@@ -26,6 +27,7 @@ export default function AdminCodigos({ productos, libres }: {
   const router = useRouter()
   const [destino, setDestino] = useState(productos[0]?.id ?? '')
   const [texto, setTexto] = useState('')
+  const [costo, setCosto] = useState('')
   const [cargando, setCargando] = useState(false)
   const [resultado, setResultado] = useState<{ insertados: number; duplicados: number } | null>(null)
   const [marcados, setMarcados] = useState<Set<number>>(new Set())
@@ -35,7 +37,9 @@ export default function AdminCodigos({ productos, libres }: {
   // La lista de borrado sigue al producto elegido arriba: un solo selector
   // para las dos operaciones evita equivocarse de producto al eliminar.
   const delProducto = libres.filter((p) => p.product_id === destino)
-  const nombreDestino = productos.find((p) => p.id === destino)?.nombre ?? ''
+  const prodDestino = productos.find((p) => p.id === destino)
+  const nombreDestino = prodDestino?.nombre ?? ''
+  const costoActual = prodDestino?.costo_cents ?? 0
 
   function alternar(id: number) {
     setMarcados((prev) => {
@@ -84,10 +88,15 @@ export default function AdminCodigos({ productos, libres }: {
     if (!destino)             return toast.error('Elige a qué producto pertenecen los pines.')
     if (codigos.length === 0) return toast.error('Pega al menos un código.')
 
+    // Sin costo escrito se usa el que ya tiene el producto. Con costo, además
+    // pasa a ser el nuevo de referencia: el proveedor cambió su precio.
+    const cents = costo.trim() ? aCentavos(costo) : null
+    if (costo.trim() && (cents === null || cents <= 0)) return toast.error('Costo inválido.')
+
     setCargando(true)
     setResultado(null)
     const { data, error } = await sb.rpc('fn_cargar_codigos', {
-      p_product_id: destino, p_codigos: codigos,
+      p_product_id: destino, p_codigos: codigos, p_costo_cents: cents,
     })
     setCargando(false)
 
@@ -96,6 +105,7 @@ export default function AdminCodigos({ productos, libres }: {
     const r = (Array.isArray(data) ? data[0] : data) as { insertados: number; duplicados: number }
     setResultado(r)
     setTexto('')
+    setCosto('')
     toast.success(`${r.insertados} pin${r.insertados === 1 ? '' : 'es'} cargados`)
     router.refresh()
   }
@@ -118,6 +128,20 @@ export default function AdminCodigos({ productos, libres }: {
                 <option key={p.id} value={p.id}>{p.nombre} — {p.stock_disponible} en stock</option>
               ))}
             </select>
+          </div>
+
+          <div className="mt-3.5">
+            <label className="mb-1.5 block text-xs font-medium text-tenue">
+              Costo por pin (opcional)
+            </label>
+            <input className="campo" inputMode="decimal"
+              placeholder={costoActual > 0 ? (costoActual / 100).toFixed(2) : '0.85'}
+              value={costo} onChange={(e) => setCosto(e.target.value)} />
+            <p className="mt-1.5 text-[11px] leading-relaxed text-tenue">
+              {costoActual > 0
+                ? <>Vacío usa el costo actual: <span className="cifra">{usd(costoActual)}</span>. Escríbelo solo si esta compra te salió a otro precio.</>
+                : 'Este producto aún no tiene costo cargado.'}
+            </p>
           </div>
 
           <div className="mt-3.5">

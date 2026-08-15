@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Landmark, KeyRound, Gem, AlertTriangle, Users, Inbox } from 'lucide-react'
+import { LayoutDashboard, Landmark, KeyRound, Gem, AlertTriangle, Users, Inbox, TrendingUp } from 'lucide-react'
 
 const SECCIONES = [
   { href: '/admin', txt: 'Resumen', Icono: LayoutDashboard },
   { href: '/admin/recargas', txt: 'Recargas', Icono: Landmark },
   { href: '/admin/codigos', txt: 'Pines', Icono: KeyRound },
   { href: '/admin/productos', txt: 'Productos', Icono: Gem },
+  { href: '/admin/rentabilidad', txt: 'Ganancia', Icono: TrendingUp },
   { href: '/admin/solicitudes', txt: 'Solicitudes', Icono: Inbox },
   { href: '/admin/reclamos', txt: 'Reclamos', Icono: AlertTriangle },
   { href: '/admin/usuarios', txt: 'Usuarios', Icono: Users },

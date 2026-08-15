@@ -2,62 +2,57 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Zap, ShieldCheck, Landmark, Wallet, ArrowRight, Gem } from 'lucide-react'
+import Image from 'next/image'
+import { Zap, ShieldCheck, Wallet, ArrowRight, Gem } from 'lucide-react'
 import { useSesion } from '@/lib/sesion'
 import { usd } from '@/lib/format'
 
 type Promo = {
   id: string
-  gancho: string          // línea pequeña de arriba
-  titulo: string
-  detalle: string
+  imagen: string
+  /** Qué parte de la imagen se conserva al recortar en pantallas anchas. */
+  foco: string
+  /** El arte ya trae su propio titular: encima solo va el botón. */
+  soloArte?: boolean
+  gancho?: string
+  titulo?: string
+  detalle?: string
   cta: string
   href: string
-  Icono: typeof Zap
-  degradado: string
+  Icono?: typeof Zap
 }
 
 /** Promesas reales del sistema. Nada de ofertas que la tienda no cumple. */
 const PROMOS: Promo[] = [
   {
-    id: 'inmediata',
-    gancho: 'Sin esperas',
-    titulo: 'Tu código al instante',
-    detalle: 'Compras y el pin aparece al segundo, a cualquier hora.',
+    id: 'vive',
+    imagen: '/banner-vive.png',
+    foco: 'left center',
+    soloArte: true,          // el banner ya dice "Vive. Juega. Sobrevive."
     cta: 'Ver pines',
     href: '#catalogo',
-    Icono: Zap,
-    degradado: 'from-marca/25 via-marca/10 to-transparent',
   },
   {
     id: 'recarga',
+    imagen: '/banner-boveda.png',
+    foco: 'right center',
     gancho: 'Desde $2.00',
     titulo: 'Recarga lo que quieras',
     detalle: 'Transfiere, sube el comprobante y tu saldo queda listo.',
     cta: 'Recargar saldo',
     href: '/recargar',
     Icono: Wallet,
-    degradado: 'from-marca2/25 via-marca2/10 to-transparent',
   },
   {
     id: 'garantia',
+    imagen: '/banner-batalla.png',
+    foco: 'center',
     gancho: 'Compra segura',
     titulo: 'Códigos únicos, garantizados',
     detalle: 'Si un pin falla, lo reportas y te devolvemos el saldo.',
-    cta: 'Cómo funciona',
+    cta: 'Ver pines',
     href: '#catalogo',
     Icono: ShieldCheck,
-    degradado: 'from-ok/20 via-ok/8 to-transparent',
-  },
-  {
-    id: 'transferencia',
-    gancho: 'Sin tarjeta',
-    titulo: 'Paga por transferencia',
-    detalle: 'Desde tu banco de siempre. Verificamos y acreditamos.',
-    cta: 'Ver cuentas',
-    href: '/recargar',
-    Icono: Landmark,
-    degradado: 'from-alerta/20 via-alerta/8 to-transparent',
   },
 ]
 
@@ -73,6 +68,8 @@ export default function HeroPromos() {
   const promos: Promo[] = uid
     ? [{
         id: 'saldo',
+        imagen: '/banner-boveda.png',
+        foco: 'right center',
         gancho: nombre ? `Hola, ${nombre.split(' ')[0]}` : 'Tu billetera',
         titulo: saldo === null ? 'Tu saldo' : `Tienes ${usd(saldo)}`,
         detalle: saldo && saldo > 0
@@ -81,7 +78,6 @@ export default function HeroPromos() {
         cta: saldo && saldo > 0 ? 'Elegir mi recarga' : 'Recargar saldo',
         href: saldo && saldo > 0 ? '#catalogo' : '/recargar',
         Icono: Gem,
-        degradado: 'from-marca/30 via-marca/10 to-transparent',
       }, ...PROMOS.filter((p) => p.id !== 'recarga')]
     : PROMOS
 
@@ -117,7 +113,7 @@ export default function HeroPromos() {
   }
 
   return (
-    <section className="aura border-b border-linea px-4 pb-5 pt-4 sm:pb-6 sm:pt-5">
+    <section className="border-b border-linea px-4 pb-5 pt-4 sm:pb-6 sm:pt-5">
       <div className="mx-auto max-w-6xl">
         <div
           ref={pista}
@@ -128,32 +124,48 @@ export default function HeroPromos() {
           onTouchEnd={() => setPausado(false)}
           className="sin-barra flex snap-x snap-mandatory overflow-x-auto scroll-smooth rounded-2xl"
         >
-          {promos.map(({ id, gancho, titulo, detalle, cta, href, Icono, degradado }) => (
-            <div key={id} className="w-full shrink-0 snap-center">
-              <div className={`relative overflow-hidden rounded-2xl border border-linea bg-panel bg-gradient-to-br ${degradado}`}>
-                {/* Diamante decorativo, se sale del marco a propósito. */}
-                <Gem
-                  size={150}
-                  strokeWidth={1}
-                  aria-hidden
-                  className="pointer-events-none absolute -right-8 -top-8 text-white/5"
+          {promos.map((p, i) => (
+            <div key={p.id} className="w-full shrink-0 snap-center">
+              <div className="relative h-52 overflow-hidden rounded-2xl border border-linea sm:h-72 lg:h-80">
+                <Image
+                  src={p.imagen}
+                  alt=""
+                  fill
+                  priority={i === 0}
+                  sizes="(min-width: 1152px) 1152px, 100vw"
+                  style={{ objectPosition: p.foco }}
+                  className="object-cover"
                 />
 
-                <div className="relative flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
-                  <div className="min-w-0">
-                    <span className="chip bg-base/60 text-marca">
-                      <Icono size={12} /> {gancho}
-                    </span>
-                    <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-3xl">
-                      {titulo}
-                    </h2>
-                    <p className="mt-1 max-w-md text-sm leading-relaxed text-tenue">
-                      {detalle}
-                    </p>
-                  </div>
+                {/* Velo desde el lado del texto: el arte de fondo es oscuro y
+                    lleno de detalle, y sin esto el titular no se lee. */}
+                <span aria-hidden
+                  className={`absolute inset-0 ${p.soloArte
+                    ? 'bg-gradient-to-t from-base/80 via-transparent to-transparent'
+                    : 'bg-gradient-to-r from-base via-base/80 to-transparent'}`} />
 
-                  <Link href={href} className="btn btn-primario shrink-0 sm:px-5 sm:py-3 sm:text-base">
-                    {cta} <ArrowRight size={16} />
+                <div className={`relative flex h-full flex-col p-5 sm:p-7 ${
+                  p.soloArte ? 'justify-end items-start' : 'justify-center'}`}>
+                  {!p.soloArte && (
+                    <div className="max-w-md">
+                      {p.gancho && (
+                        <span className="chip bg-base/70 text-marca backdrop-blur-sm">
+                          {p.Icono && <p.Icono size={12} />} {p.gancho}
+                        </span>
+                      )}
+                      <h2 className="mt-2 text-xl font-semibold tracking-tight text-white drop-shadow-lg sm:text-3xl">
+                        {p.titulo}
+                      </h2>
+                      <p className="mt-1 hidden text-sm leading-relaxed text-tenue sm:block">
+                        {p.detalle}
+                      </p>
+                    </div>
+                  )}
+
+                  <Link href={p.href}
+                    className={`btn btn-primario w-fit shadow-lg sm:px-5 sm:py-3 sm:text-base ${
+                      p.soloArte ? '' : 'mt-3.5'}`}>
+                    {p.cta} <ArrowRight size={16} />
                   </Link>
                 </div>
               </div>

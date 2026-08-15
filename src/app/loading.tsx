@@ -3,9 +3,9 @@ import { Skeleton, SkeletonTarjetas } from '@/components/ui/Skeleton'
 export default function Cargando() {
   return (
     <>
-      <section className="aura border-b border-linea px-4 pb-5 pt-4 sm:pb-6 sm:pt-5">
+      <section className="border-b border-linea px-4 pb-5 pt-4 sm:pb-6 sm:pt-5">
         <div className="mx-auto max-w-6xl">
-          <Skeleton className="h-[9.5rem] w-full rounded-2xl sm:h-[10.5rem]" />
+          <Skeleton className="h-52 w-full rounded-2xl sm:h-72 lg:h-80" />
           <div className="mt-3 flex justify-center gap-1.5">
             <Skeleton className="h-1.5 w-5 rounded-full" />
             <Skeleton className="h-1.5 w-1.5 rounded-full" />

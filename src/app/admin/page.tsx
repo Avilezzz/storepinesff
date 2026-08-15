@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic'
 
 type Metricas = {
   ventas_hoy_cents: number; ventas_mes_cents: number; ordenes_hoy: number
-  recargas_pendientes: number; reclamos_abiertos: number; usuarios_total: number
+  recargas_pendientes: number; reclamos_abiertos: number; solicitudes_producto: number
+  usuarios_total: number
   saldo_en_circulacion: number; stock_total: number
   stock_bajo: { nombre: string; stock: number }[]
 }
@@ -59,8 +60,8 @@ export default async function AdminResumen() {
       <div className="mt-2.5 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <Accion href="/admin/recargas" titulo="Recargas por revisar" n={k?.recargas_pendientes ?? 0} />
         <Accion href="/admin/reclamos" titulo="Reclamos abiertos" n={k?.reclamos_abiertos ?? 0} />
+        <Accion href="/admin/solicitudes" titulo="Esperando stock" n={k?.solicitudes_producto ?? 0} />
         <Kpi titulo="Usuarios" valor={String(k?.usuarios_total ?? 0)} />
-        <Kpi titulo="Con poco stock" valor={String(k?.stock_bajo?.length ?? 0)} />
       </div>
 
       {!!k?.stock_bajo?.length && (

@@ -1,5 +1,5 @@
 import { supabaseServer } from '@/lib/supabase'
-import AdminCodigos, { type ProductoStock } from '@/components/admin/AdminCodigos'
+import AdminCodigos, { type ProductoStock, type PinLibre } from '@/components/admin/AdminCodigos'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,9 +8,12 @@ export default async function Codigos() {
 
   type Prod = { id: string; nombre: string; diamantes: number; stock_disponible: number; activo: boolean }
 
-  const [{ data: prodRaw }, { data: pinesRaw }] = await Promise.all([
+  const [{ data: prodRaw }, { data: pinesRaw }, { data: libresRaw }] = await Promise.all([
     sb.from('products').select('id, nombre, diamantes, stock_disponible, activo').order('orden'),
     sb.from('pin_codes').select('product_id, estado'),
+    // Solo los que nadie compró: son los únicos que se pueden borrar.
+    sb.from('pin_codes').select('id, codigo, product_id, created_at')
+      .eq('estado', 'DISPONIBLE').order('id', { ascending: false }).limit(500),
   ])
 
   const productos = prodRaw as Prod[] | null
@@ -29,5 +32,5 @@ export default async function Codigos() {
     defectuosos: conteo[p.id]?.defectuosos ?? 0,
   }))
 
-  return <AdminCodigos productos={lista} />
+  return <AdminCodigos productos={lista} libres={(libresRaw as PinLibre[]) ?? []} />
 }

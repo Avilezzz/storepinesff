@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Check, Loader2 } from 'lucide-react'
+import { Plus, Check, Loader2, BellRing, BellPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { useSesion, refrescarCarrito } from '@/lib/sesion'
@@ -28,6 +28,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
   )
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [listo, setListo] = useState<string | null>(null)
+  const [pedidos, setPedidos] = useState<Set<string>>(new Set())
 
   // El catálogo llega de una página cacheada, así que el stock puede venir
   // desfasado. Realtime lo corrige al montar y con cada compra ajena.
@@ -47,6 +48,32 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
       .subscribe()
     return () => { sb.removeChannel(canal) }
   }, [sb])
+
+  // Qué productos agotados ya pidió este usuario, para no ofrecerle pedirlos
+  // otra vez ni dejar el botón mintiendo tras recargar la página.
+  useEffect(() => {
+    if (!uid) return setPedidos(new Set())
+    void (async () => {
+      const { data } = await sb.from('product_requests').select('product_id').eq('user_id', uid)
+      const filas = data as { product_id: string }[] | null
+      if (filas) setPedidos(new Set(filas.map((f) => f.product_id)))
+    })()
+  }, [sb, uid])
+
+  async function solicitar(p: Producto) {
+    if (!uid) return router.push('/login?volver=/')
+
+    setOcupado(p.id)
+    const { error } = await sb.rpc('fn_solicitar_producto', { p_product_id: p.id })
+    setOcupado(null)
+
+    if (error) return toast.error(mensajeError(error.message))
+
+    setPedidos((prev) => new Set(prev).add(p.id))
+    toast.success('¡Listo! Te avisamos apenas vuelva', {
+      description: `${p.nombre} quedó en tu lista de espera.`,
+    })
+  }
 
   async function agregar(p: Producto) {
     if (!uid) return router.push('/login?volver=/')
@@ -85,11 +112,12 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
           const agotado = s <= 0
           const enCurso = ocupado === p.id
           const recien = listo === p.id
+          const pedido = pedidos.has(p.id)
 
           return (
             <article key={p.id}
               className={`tarjeta group flex flex-col overflow-hidden transition ${
-                agotado ? 'opacity-60' : 'hover:border-marca/40'}`}>
+                agotado ? 'border-error/30' : 'hover:border-marca/40'}`}>
               {/* La imagen es la card: el arte ya trae la cantidad de diamantes,
                   así que abajo solo queda el precio y la acción. */}
               <div className="relative">
@@ -100,13 +128,25 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                   iconoSize={44}
                   sizes="(min-width: 1024px) 260px, (min-width: 640px) 32vw, 46vw"
                   zoom={!agotado}
-                  className={`aspect-4/5 w-full ${agotado ? 'grayscale' : ''}`}
+                  className="aspect-4/5 w-full"
                 />
-                <span className={`chip absolute left-2 top-2 backdrop-blur-sm ${
-                  agotado ? 'bg-error/25 text-error'
-                  : s <= 5 ? 'bg-alerta/25 text-alerta' : 'bg-base/70 text-ok'}`}>
-                  {agotado ? 'Agotado' : `${s} disp.`}
-                </span>
+
+                {/* Agotado conserva el color del arte: se marca con un velo
+                    oscuro y una cinta, no apagando el producto. */}
+                {agotado && (
+                  <span aria-hidden className="absolute inset-0 bg-base/45" />
+                )}
+
+                {agotado ? (
+                  <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-error/90 py-1 text-center text-[11px] font-bold uppercase tracking-widest text-white shadow-lg">
+                    Agotado
+                  </span>
+                ) : (
+                  <span className={`chip absolute left-2 top-2 backdrop-blur-sm ${
+                    s <= 5 ? 'bg-alerta/25 text-alerta' : 'bg-base/70 text-ok'}`}>
+                    {`${s} disp.`}
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-1 flex-col justify-end gap-2.5 p-3">
@@ -118,17 +158,31 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                   </p>
                 </div>
 
-                <button
-                  onClick={() => agregar(p)}
-                  disabled={agotado || enCurso || cargando}
-                  aria-label={`Agregar ${p.nombre} al carrito`}
-                  className={`btn w-full ${agotado || recien ? 'btn-suave' : 'btn-primario'}`}
-                >
-                  {agotado ? 'Sin stock'
-                    : enCurso ? <Loader2 size={15} className="animate-spin" />
-                    : recien ? <><Check size={15} className="text-ok" /> Agregado</>
-                    : <><Plus size={15} /> Agregar</>}
-                </button>
+                {agotado ? (
+                  <button
+                    onClick={() => solicitar(p)}
+                    disabled={enCurso || cargando || pedido}
+                    aria-label={pedido
+                      ? `Ya pediste que avisemos cuando vuelva ${p.nombre}`
+                      : `Avisarme cuando vuelva ${p.nombre}`}
+                    className={`btn w-full ${pedido ? 'btn-suave' : 'btn-primario'}`}
+                  >
+                    {enCurso ? <Loader2 size={15} className="animate-spin" />
+                      : pedido ? <><BellRing size={15} className="text-ok" /> Te avisaremos</>
+                      : <><BellPlus size={15} /> Avísame</>}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => agregar(p)}
+                    disabled={enCurso || cargando}
+                    aria-label={`Agregar ${p.nombre} al carrito`}
+                    className={`btn w-full ${recien ? 'btn-suave' : 'btn-primario'}`}
+                  >
+                    {enCurso ? <Loader2 size={15} className="animate-spin" />
+                      : recien ? <><Check size={15} className="text-ok" /> Agregado</>
+                      : <><Plus size={15} /> Agregar</>}
+                  </button>
+                )}
               </div>
             </article>
           )

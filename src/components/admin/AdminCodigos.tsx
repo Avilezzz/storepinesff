@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Upload, Loader2, CheckCircle2 } from 'lucide-react'
+import { Upload, Loader2, CheckCircle2, Trash2, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
-import { mensajeError } from '@/lib/format'
+import { mensajeError, fecha } from '@/lib/format'
+import Dialogo from '@/components/ui/Dialogo'
 
 export type ProductoStock = {
   id: string; nombre: string; diamantes: number
@@ -13,13 +14,65 @@ export type ProductoStock = {
   vendidos: number; defectuosos: number
 }
 
-export default function AdminCodigos({ productos }: { productos: ProductoStock[] }) {
+export type PinLibre = {
+  id: number; codigo: string; product_id: string; created_at: string
+}
+
+export default function AdminCodigos({ productos, libres }: {
+  productos: ProductoStock[]
+  libres: PinLibre[]
+}) {
   const sb = supabaseBrowser()
   const router = useRouter()
   const [destino, setDestino] = useState(productos[0]?.id ?? '')
   const [texto, setTexto] = useState('')
   const [cargando, setCargando] = useState(false)
   const [resultado, setResultado] = useState<{ insertados: number; duplicados: number } | null>(null)
+  const [marcados, setMarcados] = useState<Set<number>>(new Set())
+  const [confirmar, setConfirmar] = useState(false)
+  const [borrando, setBorrando] = useState(false)
+
+  // La lista de borrado sigue al producto elegido arriba: un solo selector
+  // para las dos operaciones evita equivocarse de producto al eliminar.
+  const delProducto = libres.filter((p) => p.product_id === destino)
+  const nombreDestino = productos.find((p) => p.id === destino)?.nombre ?? ''
+
+  function alternar(id: number) {
+    setMarcados((prev) => {
+      const s = new Set(prev)
+      if (s.has(id)) s.delete(id); else s.add(id)
+      return s
+    })
+  }
+
+  function alternarTodos() {
+    const ids = delProducto.map((p) => p.id)
+    const todos = ids.every((id) => marcados.has(id))
+    setMarcados((prev) => {
+      const s = new Set(prev)
+      ids.forEach((id) => (todos ? s.delete(id) : s.add(id)))
+      return s
+    })
+  }
+
+  async function borrar() {
+    const ids = delProducto.filter((p) => marcados.has(p.id)).map((p) => p.id)
+    if (ids.length === 0) return
+
+    setBorrando(true)
+    const { data, error } = await sb.rpc('fn_borrar_codigos', { p_ids: ids })
+    setBorrando(false)
+    setConfirmar(false)
+
+    if (error) { toast.error(mensajeError(error.message)); return }
+
+    const n = Number(data ?? 0)
+    setMarcados(new Set())
+    toast.success(`${n} pin${n === 1 ? '' : 'es'} eliminado${n === 1 ? '' : 's'}`)
+    router.refresh()
+  }
+
+  const seleccionados = delProducto.filter((p) => marcados.has(p.id)).length
 
   // Un pin por línea; también acepta que estén separados por comas o espacios.
   const codigos = useMemo(
@@ -127,6 +180,76 @@ export default function AdminCodigos({ productos }: { productos: ProductoStock[]
           </div>
         </div>
       </div>
+
+      <div className="tarjeta mt-4 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-linea p-4">
+          <div>
+            <h2 className="subtitulo">Pines libres de {nombreDestino || 'este producto'}</h2>
+            <p className="mt-0.5 text-xs text-tenue">
+              Solo aparecen los que nadie compró. Los vendidos no se pueden
+              borrar: son el respaldo de la compra del cliente.
+            </p>
+          </div>
+
+          {seleccionados > 0 && (
+            <button onClick={() => setConfirmar(true)} className="btn btn-peligro">
+              <Trash2 size={15} /> Borrar {seleccionados}
+            </button>
+          )}
+        </div>
+
+        {delProducto.length === 0 ? (
+          <p className="px-4 py-10 text-center text-sm text-tenue">
+            No hay pines libres de este producto.
+          </p>
+        ) : (
+          <>
+            <label className="flex cursor-pointer items-center gap-2.5 border-b border-linea px-4 py-2.5 text-xs text-tenue transition hover:bg-panel2">
+              <input type="checkbox" className="accent-marca"
+                checked={delProducto.every((p) => marcados.has(p.id))}
+                onChange={alternarTodos} />
+              Seleccionar los {delProducto.length}
+            </label>
+
+            <div className="max-h-96 overflow-y-auto">
+              {delProducto.map((p) => (
+                <label key={p.id}
+                  className="flex cursor-pointer items-center gap-2.5 border-b border-linea px-4 py-2.5 text-sm transition last:border-0 hover:bg-panel2">
+                  <input type="checkbox" className="accent-marca"
+                    checked={marcados.has(p.id)} onChange={() => alternar(p.id)} />
+                  <code className="min-w-0 flex-1 truncate font-mono text-xs tracking-wide">
+                    {p.codigo}
+                  </code>
+                  <span className="shrink-0 text-[11px] text-tenue/60">{fecha(p.created_at)}</span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <Dialogo
+        abierto={confirmar}
+        titulo={`¿Borrar ${seleccionados} pin${seleccionados === 1 ? '' : 'es'}?`}
+        peligro
+        textoConfirmar={borrando ? 'Borrando…' : 'Sí, borrar'}
+        onCerrar={() => setConfirmar(false)}
+        onConfirmar={borrar}
+        descripcion={
+          <>
+            <p className="leading-relaxed">
+              Se eliminarán de {nombreDestino} y el stock bajará a{' '}
+              <span className="cifra font-semibold">
+                {Math.max(0, delProducto.length - seleccionados)}
+              </span>. Esto no se puede deshacer.
+            </p>
+            <p className="mt-2.5 flex items-start gap-2 rounded-lg bg-ok/10 px-3 py-2 text-xs text-ok">
+              <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+              Ningún pin ya vendido se toca: solo se borran los que nadie compró.
+            </p>
+          </>
+        }
+      />
     </>
   )
 }

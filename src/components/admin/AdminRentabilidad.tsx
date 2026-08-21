@@ -194,10 +194,10 @@ export default function AdminRentabilidad({ datos }: { datos: Rentabilidad }) {
       </div>
 
       <p className="mt-3 text-xs leading-relaxed text-tenue">
-        <strong className="font-medium text-white">Margen</strong>: cuánto de cada
+        <strong className="font-medium text-fuerte">Margen</strong>: cuánto de cada
         venta te queda. Verde 30% o más, ámbar entre 20 y 30, rojo por debajo.
         <br />
-        <strong className="font-medium text-white">Invertido</strong>: lo que
+        <strong className="font-medium text-fuerte">Invertido</strong>: lo que
         pagaste por los pines que aún no vendes.
       </p>
     </>

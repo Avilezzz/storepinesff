@@ -125,7 +125,7 @@ export default function PinesEntregados({ pines, reclamados, urlEmbed, urlExtern
       <div className="tarjeta mt-5 p-4">
         <p className="subtitulo">Cómo canjear</p>
         <ol className="mt-2.5 space-y-1.5 text-sm leading-relaxed text-tenue">
-          <li className="flex gap-2.5"><span className="text-marca">1.</span> Toca <strong className="font-medium text-white">Canjear</strong> en el pin que quieras usar.</li>
+          <li className="flex gap-2.5"><span className="text-marca">1.</span> Toca <strong className="font-medium text-fuerte">Canjear</strong> en el pin que quieras usar.</li>
           <li className="flex gap-2.5"><span className="text-marca">2.</span> Ingresa el ID de tu cuenta de Free Fire.</li>
           <li className="flex gap-2.5"><span className="text-marca">3.</span> Pega el código y confirma. Los diamantes llegan a esa cuenta.</li>
         </ol>
@@ -160,7 +160,7 @@ export default function PinesEntregados({ pines, reclamados, urlEmbed, urlExtern
               {MOTIVOS.map((m) => (
                 <label key={m}
                   className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition ${
-                    motivo === m ? 'border-marca bg-marca/8 text-white' : 'border-linea bg-panel2'}`}>
+                    motivo === m ? 'border-marca bg-marca/8 text-fuerte' : 'border-linea bg-panel2'}`}>
                   <input type="radio" name="motivo" checked={motivo === m}
                     onChange={() => setMotivo(m)} className="accent-marca" />
                   {m}

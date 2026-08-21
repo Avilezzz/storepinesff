@@ -138,25 +138,27 @@ export default function HeroPromos() {
                 />
 
                 {/* Velo desde el lado del texto: el arte de fondo es oscuro y
-                    lleno de detalle, y sin esto el titular no se lee. */}
+                    lleno de detalle, y sin esto el titular no se lee.
+                    Es oscuro en los dos temas a propósito, porque el texto que
+                    va encima es blanco y el arte no cambia con el tema. */}
                 <span aria-hidden
                   className={`absolute inset-0 ${p.soloArte
-                    ? 'bg-gradient-to-t from-base/80 via-transparent to-transparent'
-                    : 'bg-gradient-to-r from-base via-base/80 to-transparent'}`} />
+                    ? 'bg-gradient-to-t from-[#080a0e]/85 via-transparent to-transparent'
+                    : 'bg-gradient-to-r from-[#080a0e] via-[#080a0e]/75 to-transparent'}`} />
 
                 <div className={`relative flex h-full flex-col p-5 sm:p-7 ${
                   p.soloArte ? 'justify-end items-start' : 'justify-center'}`}>
                   {!p.soloArte && (
                     <div className="max-w-md">
                       {p.gancho && (
-                        <span className="chip bg-base/70 text-marca backdrop-blur-sm">
+                        <span className="chip bg-white/12 text-white backdrop-blur-sm">
                           {p.Icono && <p.Icono size={12} />} {p.gancho}
                         </span>
                       )}
                       <h2 className="mt-2 text-xl font-semibold tracking-tight text-white drop-shadow-lg sm:text-3xl">
                         {p.titulo}
                       </h2>
-                      <p className="mt-1 hidden text-sm leading-relaxed text-tenue sm:block">
+                      <p className="mt-1 hidden text-sm leading-relaxed text-white/70 sm:block">
                         {p.detalle}
                       </p>
                     </div>

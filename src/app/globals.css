@@ -1,26 +1,58 @@
 @import 'tailwindcss';
 
+/* ── Sistema de color ───────────────────────────────────────────────────────
+   Los nombres son semánticos, no visuales: "panel" es la superficie de una
+   tarjeta, no "gris oscuro". Así el mismo `bg-panel` sirve en los dos temas y
+   cambiar de tema es redefinir variables, no reescribir componentes.
+
+   El tema claro vive en :root porque es el que manda por defecto.           */
 @theme {
-  --color-base: #0a0c10;
-  --color-panel: #12151c;
-  --color-panel2: #191d26;
-  --color-linea: #232833;
-  --color-tenue: #8a92a6;
-  --color-marca: #ff7a18;
-  --color-marca2: #ff4d4d;
-  --color-ok: #22c55e;
-  --color-alerta: #f59e0b;
-  --color-error: #ef4444;
+  --color-base:        #f6f7f9;   /* fondo de la página            */
+  --color-panel:       #ffffff;   /* tarjetas y superficies        */
+  --color-panel2:      #eff1f5;   /* campos, hover, zonas hundidas */
+  --color-linea:       #e2e6ec;   /* bordes                        */
+  --color-tenue:       #5d6779;   /* texto secundario              */
+  --color-fuerte:      #0e1320;   /* texto principal y titulares   */
+  --color-marca:       #c2410c;   /* naranja de marca              */
+  --color-marca2:      #b91c1c;
+  --color-sobre-marca: #ffffff;   /* texto encima del naranja      */
+  --color-ok:          #15803d;
+  --color-alerta:      #a16207;
+  --color-error:       #b91c1c;
+
+  --sombra-tarjeta: 0 1px 2px rgb(15 20 32 / 0.04), 0 1px 3px rgb(15 20 32 / 0.06);
+  --sombra-flotante: 0 4px 6px -1px rgb(15 20 32 / 0.07), 0 10px 24px -6px rgb(15 20 32 / 0.14);
+}
+
+/* En oscuro el naranja puede ser más vivo: sobre fondo negro contrasta de
+   sobra, mientras que en claro tuvo que oscurecerse para poder leerse. */
+:root[data-tema='oscuro'] {
+  --color-base:        #0a0c10;
+  --color-panel:       #12151c;
+  --color-panel2:      #191d26;
+  --color-linea:       #232833;
+  --color-tenue:       #8a92a6;
+  --color-fuerte:      #ffffff;
+  --color-marca:       #ff7a18;
+  --color-marca2:      #ff4d4d;
+  --color-sobre-marca: #150c04;
+  --color-ok:          #22c55e;
+  --color-alerta:      #f59e0b;
+  --color-error:       #ef4444;
+
+  --sombra-tarjeta: none;
+  --sombra-flotante: 0 10px 30px -10px rgb(0 0 0 / 0.6);
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   -webkit-tap-highlight-color: transparent;   /* sin flash azul al tocar en móvil */
 }
+:root[data-tema='oscuro'] { color-scheme: dark; }
 
 body {
   background: var(--color-base);
-  color: #e7eaf0;
+  color: var(--color-fuerte);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -34,11 +66,13 @@ body {
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  color: var(--color-fuerte);
 }
 .subtitulo {
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+  color: var(--color-fuerte);
 }
 .etiqueta {
   font-size: 0.6875rem;
@@ -52,14 +86,27 @@ body {
 /* Resplandor de marca, puramente decorativo. */
 .aura {
   background:
-    radial-gradient(55rem 26rem at 15% -20%, rgb(255 122 24 / 0.13), transparent 62%),
-    radial-gradient(45rem 24rem at 88% -10%, rgb(255 77 77 / 0.09), transparent 62%);
+    radial-gradient(55rem 26rem at 15% -20%, color-mix(in srgb, var(--color-marca) 10%, transparent), transparent 62%),
+    radial-gradient(45rem 24rem at 88% -10%, color-mix(in srgb, var(--color-marca2) 8%, transparent), transparent 62%);
 }
 
 .tarjeta {
   background: var(--color-panel);
   border: 1px solid var(--color-linea);
   border-radius: 0.875rem;
+  box-shadow: var(--sombra-tarjeta);
+}
+
+/* Piezas con una versión por tema, como el logo: las alterna el CSS a partir
+   del atributo que el script del <head> deja puesto antes de pintar. */
+.solo-oscuro { display: none; }
+:root[data-tema='oscuro'] .solo-claro  { display: none; }
+:root[data-tema='oscuro'] .solo-oscuro { display: block; }
+
+/* Velo de los diálogos. Oscuro en ambos temas: su trabajo es apagar el fondo. */
+.velo {
+  background: rgb(9 11 16 / 0.55);
+  backdrop-filter: blur(4px);
 }
 
 /* ── Formularios ───────────────────────────────────────────────────────── */
@@ -70,22 +117,28 @@ body {
   border-radius: 0.5rem;
   padding: 0.625rem 0.75rem;
   font-size: 1rem;                 /* 16px evita que iOS haga zoom al enfocar */
-  color: #e7eaf0;
+  color: var(--color-fuerte);
   outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
 .campo:focus {
   border-color: var(--color-marca);
-  box-shadow: 0 0 0 3px rgb(255 122 24 / 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-marca) 14%, transparent);
 }
-.campo::placeholder { color: #59617a; }
+.campo::placeholder { color: color-mix(in srgb, var(--color-tenue) 70%, transparent); }
 
+/* La flecha va como imagen de fondo, así cualquier <select class="campo">
+   la tiene sin necesidad de envolverlo en nada. El SVG lleva el color
+   incrustado, de ahí que haya una versión por tema. */
 select.campo {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a92a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235d6779' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.625rem center;
   padding-right: 2rem;
+}
+:root[data-tema='oscuro'] select.campo {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a92a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 /* ── Botones ───────────────────────────────────────────────────────────── */
@@ -101,7 +154,7 @@ select.campo {
 
 .btn-primario {
   background: var(--color-marca);
-  color: #150c04;
+  color: var(--color-sobre-marca);
   font-weight: 600;
 }
 .btn-primario:not(:disabled):hover { filter: brightness(1.08); }
@@ -109,9 +162,11 @@ select.campo {
 .btn-suave {
   background: var(--color-panel2);
   border: 1px solid var(--color-linea);
-  color: #e7eaf0;
+  color: var(--color-fuerte);
 }
-.btn-suave:not(:disabled):hover { background: #212734; }
+.btn-suave:not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-panel2) 80%, var(--color-linea));
+}
 
 .btn-peligro { background: var(--color-error); color: #fff; font-weight: 600; }
 .btn-peligro:not(:disabled):hover { filter: brightness(1.08); }
@@ -125,7 +180,7 @@ select.campo {
   background: transparent; border: 0; cursor: pointer;
   transition: background-color .15s, color .15s;
 }
-.btn-icono:hover { background: var(--color-panel2); color: #e7eaf0; }
+.btn-icono:hover { background: var(--color-panel2); color: var(--color-fuerte); }
 .btn-icono:focus-visible { outline: 2px solid var(--color-marca); outline-offset: 2px; }
 .btn-icono:disabled { opacity: .4; cursor: not-allowed; }
 .btn-icono.activo { color: var(--color-marca); }
@@ -147,8 +202,13 @@ select.campo {
 /* ── Detalles ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #262c3a; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #333a4b; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-tenue) 35%, transparent);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-tenue) 55%, transparent);
+}
 
 /* Oculta la barra en carruseles horizontales de móvil. */
 .sin-barra { scrollbar-width: none; }

@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ShoppingCart, Wallet, Package, ArrowUpCircle, Settings, LogOut, UserCog } from 'lucide-react'
@@ -10,6 +9,8 @@ import { useSesion } from '@/lib/sesion'
 import { usd } from '@/lib/format'
 import Avatar from './ui/Avatar'
 import Campanita from './Campanita'
+import BotonTema from './ui/BotonTema'
+import Logo from './ui/Logo'
 
 const MENU = [
   { href: '/mis-compras', txt: 'Mis compras', Icono: Package },
@@ -50,11 +51,12 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-linea bg-base/80 backdrop-blur-xl">
       <nav className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.png" alt="PinStore FF" width={80} height={40}
-            className="h-9 w-auto" priority />
+          <Logo className="h-8 w-auto sm:h-9" />
         </Link>
 
         <div className="flex-1" />
+
+        <BotonTema />
 
         {cargando ? (
           <div className="h-8 w-24 animate-pulse rounded-lg bg-panel2" />
@@ -71,7 +73,7 @@ export default function Navbar() {
             <Link href="/carrito" className="btn-icono relative hidden sm:inline-flex" aria-label="Carrito">
               <ShoppingCart size={19} />
               {items > 0 && (
-                <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-marca px-1 text-[10px] font-bold text-[#150c04]">
+                <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-marca px-1 text-[10px] font-bold text-sobre-marca">
                   {items}
                 </span>
               )}
@@ -103,7 +105,7 @@ export default function Navbar() {
 
                   {MENU.map(({ href, txt, Icono }) => (
                     <Link key={href} href={href} role="menuitem" onClick={() => setAbierto(false)}
-                      className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-tenue transition hover:bg-panel2 hover:text-white">
+                      className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-tenue transition hover:bg-panel2 hover:text-fuerte">
                       <Icono size={16} /> {txt}
                     </Link>
                   ))}

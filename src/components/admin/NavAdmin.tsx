@@ -26,7 +26,7 @@ export default function NavAdmin() {
         return (
           <Link key={href} href={href}
             className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition ${
-              activo ? 'bg-panel2 font-medium text-white' : 'text-tenue hover:text-white'}`}>
+              activo ? 'bg-panel2 font-medium text-fuerte' : 'text-tenue hover:text-fuerte'}`}>
             <Icono size={15} className={activo ? 'text-marca' : ''} />
             {txt}
           </Link>

@@ -134,7 +134,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                 {/* Agotado conserva el color del arte: se marca con un velo
                     oscuro y una cinta, no apagando el producto. */}
                 {agotado && (
-                  <span aria-hidden className="absolute inset-0 bg-base/45" />
+                  <span aria-hidden className="absolute inset-0 bg-[#080a0e]/45" />
                 )}
 
                 {agotado ? (

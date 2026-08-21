@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Gem, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
+import Logo from '@/components/ui/Logo'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { mensajeError } from '@/lib/format'
@@ -50,9 +51,7 @@ export default function Registro() {
     <div className="aura px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-6 text-center">
-          <span className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-marca text-[#150c04]">
-            <Gem size={21} strokeWidth={2.4} />
-          </span>
+          <Logo className="mx-auto mb-4 h-9 w-auto" />
           <h1 className="titulo">Crea tu cuenta</h1>
           <p className="mt-1 text-sm text-tenue">Recarga saldo y compra pines al instante.</p>
         </div>

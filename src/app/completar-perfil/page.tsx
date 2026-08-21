@@ -84,7 +84,7 @@ function Formulario() {
     <div className="aura flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <span className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-marca text-[#150c04]">
+          <span className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-marca text-sobre-marca">
             <Gem size={21} strokeWidth={2.4} />
           </span>
           <h1 className="titulo">Un dato más</h1>

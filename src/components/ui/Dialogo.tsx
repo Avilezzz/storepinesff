@@ -69,7 +69,7 @@ export default function Dialogo({
       aria-modal="true"
       aria-label={titulo}
       onClick={onCerrar}
-      className="fixed inset-0 z-100 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-100 flex items-end justify-center velo sm:items-center"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -78,7 +78,7 @@ export default function Dialogo({
         <div className="mb-1 flex items-start justify-between gap-4">
           <h3 className="text-base font-semibold tracking-tight">{titulo}</h3>
           <button onClick={onCerrar} aria-label="Cerrar"
-            className="-mr-1 -mt-1 rounded-lg p-1.5 text-tenue transition hover:bg-panel2 hover:text-white">
+            className="-mr-1 -mt-1 rounded-lg p-1.5 text-tenue transition hover:bg-panel2 hover:text-fuerte">
             <X size={18} />
           </button>
         </div>

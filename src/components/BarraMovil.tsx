@@ -35,7 +35,7 @@ export default function BarraMovil() {
               <span className="relative">
                 <Icono size={20} strokeWidth={activo ? 2.4 : 1.9} />
                 {!!n && n > 0 && (
-                  <span className="absolute -right-2 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-marca px-1 text-[10px] font-bold text-[#150c04]">
+                  <span className="absolute -right-2 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-marca px-1 text-[10px] font-bold text-sobre-marca">
                     {n}
                   </span>
                 )}

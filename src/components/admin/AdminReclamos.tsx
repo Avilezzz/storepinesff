@@ -106,8 +106,8 @@ export default function AdminReclamos(
         onCerrar={() => setAprobando(null)}
         onConfirmar={async (nota) => { if (aprobando) await resolver(aprobando, true, nota) }}
         descripcion={
-          <>Se devolverán <strong className="text-white">{aprobando ? usd(aprobando.order_items?.precio_unit_cents ?? 0) : ''}</strong> a
-          la billetera de <strong className="text-white">{aprobando?.profiles?.nombre}</strong> y
+          <>Se devolverán <strong className="text-fuerte">{aprobando ? usd(aprobando.order_items?.precio_unit_cents ?? 0) : ''}</strong> a
+          la billetera de <strong className="text-fuerte">{aprobando?.profiles?.nombre}</strong> y
           el pin quedará marcado como defectuoso.</>
         }
       />

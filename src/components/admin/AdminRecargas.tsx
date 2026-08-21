@@ -157,8 +157,8 @@ export default function AdminRecargas(
         onCerrar={() => setAprobando(null)}
         onConfirmar={aprobar}
         descripcion={
-          <>Se sumarán <strong className="text-white">{aprobando ? usd(aprobando.amount_cents) : ''}</strong> a
-          la billetera de <strong className="text-white">{aprobando?.profiles?.nombre}</strong>.
+          <>Se sumarán <strong className="text-fuerte">{aprobando ? usd(aprobando.amount_cents) : ''}</strong> a
+          la billetera de <strong className="text-fuerte">{aprobando?.profiles?.nombre}</strong>.
           El movimiento queda asentado en el libro mayor y no se puede deshacer.</>
         }
       />

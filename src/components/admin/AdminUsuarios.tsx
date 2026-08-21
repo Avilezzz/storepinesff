@@ -122,7 +122,7 @@ function ModalAjuste({ usuario, onCerrar, onListo }: {
   }
 
   return (
-    <div className="fixed inset-0 z-100 flex items-end justify-center bg-black/60 backdrop-blur-sm p-0 sm:items-center sm:p-4"
+    <div className="fixed inset-0 z-100 flex items-end justify-center velo p-0 sm:items-center sm:p-4"
       onClick={onCerrar}>
       <div onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-t-2xl border border-linea bg-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-5">

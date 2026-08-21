@@ -1,38 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Megaphone, Send, Eye, UserCheck, UserMinus, Gauge } from 'lucide-react'
+import { Megaphone, Send, Eye, UserCheck, UserMinus, Gauge, Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { fecha, mensajeError } from '@/lib/format'
 import Dialogo from '../ui/Dialogo'
+import SelectorPlantillas from './SelectorPlantillas'
+import { usePrevia, type Plantilla } from './plantillas'
 
 export type Stats = {
   suscritos: number; de_baja: number; enviados_hoy: number; ultima_campana: string | null
 }
-
-/** Puntos de partida. La idea es avisar de algo real, no repetir "visítanos". */
-const IDEAS = [
-  {
-    txt: 'Stock nuevo',
-    asunto: 'Llegaron pines nuevos, {nombre}',
-    mensaje: '{nombre}, acabamos de cargar pines de todas las denominaciones.\n\n' +
-      'Ya sabes cómo funciona: recargas tu saldo y el código te llega al instante, sin esperar a nadie.',
-  },
-  {
-    txt: 'Te extrañamos',
-    asunto: '{nombre}, hace rato que no te vemos',
-    mensaje: 'Hola {nombre}, pasamos a saludar.\n\n' +
-      'La tienda sigue abierta y con stock. Si andas necesitando diamantes, entra y en dos minutos los tienes.',
-  },
-  {
-    txt: 'Tienes saldo',
-    asunto: '{nombre}, tienes saldo esperándote',
-    mensaje: '{nombre}, te quedó saldo en tu billetera de FFPINS.\n\n' +
-      'No caduca ni se pierde, pero ahí no te sirve de nada. Entra y cámbialo por diamantes cuando quieras.',
-  },
-]
 
 const LIMITE_DIARIO = 100
 
@@ -43,17 +24,32 @@ export default function AdminNovedades({ stats }: { stats: Stats }) {
   const [mensaje, setMensaje] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [confirmar, setConfirmar] = useState(false)
+  const areaRef = useRef<HTMLTextAreaElement>(null)
 
   const cupo = Math.max(0, LIMITE_DIARIO - stats.enviados_hoy)
   const alcance = Math.min(stats.suscritos, cupo)
 
-  function usarIdea(i: (typeof IDEAS)[number]) {
-    setAsunto(i.asunto)
-    setMensaje(i.mensaje)
+  // Sin cliente concreto, la previa se resuelve contra tus propios datos: es lo
+  // más parecido a un correo real que se puede enseñar antes de elegir a quién.
+  const previaAsunto = usePrevia(asunto)
+  const previaMensaje = usePrevia(mensaje)
+
+  function elegir(p: Plantilla) {
+    setAsunto(p.asunto)
+    setMensaje(p.cuerpo)
   }
 
-  /** La vista previa reemplaza el comodín igual que lo hará la base de datos. */
-  const previa = (t: string) => t.replace(/\{nombre\}/g, 'Luis')
+  /** Inserta la variable donde está el cursor, no al final del texto. */
+  function insertar(v: string) {
+    const el = areaRef.current
+    if (!el) return setMensaje((m) => m + v)
+    const { selectionStart: i, selectionEnd: j } = el
+    setMensaje((m) => m.slice(0, i) + v + m.slice(j))
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(i + v.length, i + v.length)
+    })
+  }
 
   async function enviar(prueba: boolean) {
     if (!asunto.trim())  return toast.error('Escribe el asunto.')
@@ -91,37 +87,30 @@ export default function AdminNovedades({ stats }: { stats: Stats }) {
       </div>
 
       <div className="tarjeta p-5">
-        <div className="sin-barra mb-4 flex gap-1.5 overflow-x-auto">
-          {IDEAS.map((i) => (
-            <button key={i.txt} type="button" onClick={() => usarIdea(i)}
-              className="chip shrink-0 border border-linea bg-panel2 px-2.5 py-1.5 text-tenue transition hover:border-marca/50 hover:text-marca">
-              {i.txt}
-            </button>
-          ))}
-        </div>
+        <SelectorPlantillas ambito="novedades" onElegir={elegir} onInsertar={insertar} />
 
         <label className="mb-1.5 block text-xs font-medium text-tenue">Asunto</label>
         <input className="campo" placeholder="Llegaron pines nuevos, {nombre}"
           value={asunto} onChange={(e) => setAsunto(e.target.value)} />
 
         <label className="mb-1.5 mt-3.5 block text-xs font-medium text-tenue">Mensaje</label>
-        <textarea className="campo min-h-40 resize-y" rows={7}
+        <textarea ref={areaRef} className="campo min-h-40 resize-y" rows={7}
           placeholder="Escribe como le hablarías a un cliente. Usa {nombre} donde quieras su nombre."
           value={mensaje} onChange={(e) => setMensaje(e.target.value)} />
 
         <p className="mt-2 text-[11px] leading-relaxed text-tenue/70">
-          Escribe <code className="cifra text-marca">{'{nombre}'}</code> y se reemplaza por el
-          nombre de cada cliente. Cada correo lleva su enlace para darse de baja.
+          Cada cliente recibe el texto con sus propios datos. Todos los correos llevan
+          su enlace para darse de baja.
         </p>
 
         {(asunto || mensaje) && (
           <div className="mt-4 rounded-xl border border-linea bg-panel2 p-4">
             <p className="etiqueta mb-2 flex items-center gap-1.5">
-              <Eye size={12} /> Así lo recibe Luis
+              <Eye size={12} /> Con tus datos se leería así
             </p>
-            <p className="text-sm font-semibold">{previa(asunto) || 'Sin asunto'}</p>
+            <p className="text-sm font-semibold">{previaAsunto || 'Sin asunto'}</p>
             <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-tenue">
-              {previa(mensaje)}
+              {previaMensaje}
             </p>
           </div>
         )}
@@ -151,10 +140,14 @@ export default function AdminNovedades({ stats }: { stats: Stats }) {
         )}
       </div>
 
+      <Link href="/admin/plantillas" className="enlace mt-4 justify-center hover:text-marca">
+        <Settings2 size={14} /> Gestionar plantillas
+      </Link>
+
       <Dialogo
         abierto={confirmar}
         titulo={`Enviar a ${alcance} cliente${alcance === 1 ? '' : 's'}`}
-        descripcion={`"${previa(asunto)}". Esto no se puede deshacer: el correo sale de inmediato. ¿Ya te mandaste la prueba?`}
+        descripcion={`"${previaAsunto}". Esto no se puede deshacer: el correo sale de inmediato. ¿Ya te mandaste la prueba?`}
         textoConfirmar="Sí, enviar"
         onConfirmar={() => { void enviar(false) }}
         onCerrar={() => setConfirmar(false)}

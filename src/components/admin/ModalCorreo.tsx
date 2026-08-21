@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { mensajeError } from '@/lib/format'
 import Avatar from '../ui/Avatar'
 import type { ClienteBase } from './ModalAjuste'
-
-/** Los asuntos de siempre, para no escribirlos cada vez. Son editables. */
-const ASUNTOS = ['Sobre tu recarga', 'Sobre tu compra', 'Sobre tu reclamo', 'Novedades de FFPINS']
+import SelectorPlantillas from './SelectorPlantillas'
+import { usePrevia, type Plantilla } from './plantillas'
 
 /**
  * Correo suelto a un cliente. Sale con la plantilla y el logo de la tienda, no
@@ -21,6 +21,29 @@ export default function ModalCorreo({ cliente, onCerrar }: {
   const [asunto, setAsunto] = useState('')
   const [mensaje, setMensaje] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const areaRef = useRef<HTMLTextAreaElement>(null)
+
+  // La previa se resuelve contra ESTE cliente, así que se lee tal cual le va a
+  // llegar a él: su nombre, su saldo, lo que suele comprar.
+  const previaAsunto = usePrevia(asunto, cliente.id)
+  const previaMensaje = usePrevia(mensaje, cliente.id)
+
+  function elegir(p: Plantilla) {
+    setAsunto(p.asunto)
+    setMensaje(p.cuerpo)
+  }
+
+  /** Inserta la variable donde está el cursor, no al final del texto. */
+  function insertar(v: string) {
+    const el = areaRef.current
+    if (!el) return setMensaje((m) => m + v)
+    const { selectionStart: i, selectionEnd: j } = el
+    setMensaje((m) => m.slice(0, i) + v + m.slice(j))
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(i + v.length, i + v.length)
+    })
+  }
 
   async function enviar() {
     if (!asunto.trim())  return toast.error('Escribe el asunto.')
@@ -41,8 +64,8 @@ export default function ModalCorreo({ cliente, onCerrar }: {
     <div className="fixed inset-0 z-100 flex items-end justify-center velo p-0 sm:items-center sm:p-4"
       onClick={onCerrar}>
       <div onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-t-2xl border border-linea bg-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-5">
-        <div className="flex items-center gap-3">
+        className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-linea bg-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-5">
+        <div className="mb-4 flex items-center gap-3">
           <Avatar nombre={cliente.nombre} size={38} />
           <div className="min-w-0">
             <h3 className="text-base font-semibold tracking-tight">Escribir a {cliente.nombre}</h3>
@@ -50,30 +73,28 @@ export default function ModalCorreo({ cliente, onCerrar }: {
           </div>
         </div>
 
-        <div className="mt-4">
-          <label className="mb-1.5 block text-xs font-medium text-tenue">Asunto</label>
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {ASUNTOS.map((a) => (
-              <button key={a} type="button" onClick={() => setAsunto(a)}
-                className={`chip shrink-0 border px-2.5 py-1.5 text-left transition ${
-                  asunto === a ? 'border-marca bg-marca/10 text-marca' : 'border-linea bg-panel2 text-tenue'}`}>
-                {a}
-              </button>
-            ))}
-          </div>
-          <input className="campo" placeholder="O escríbelo a mano" autoFocus
-            value={asunto} onChange={(e) => setAsunto(e.target.value)} />
-        </div>
+        <SelectorPlantillas ambito="individual" onElegir={elegir} onInsertar={insertar} />
 
-        <div className="mt-3.5">
-          <label className="mb-1.5 block text-xs font-medium text-tenue">Mensaje</label>
-          <textarea className="campo min-h-32 resize-y" rows={5}
-            placeholder={`Hola ${cliente.nombre.split(' ')[0]}, te escribo porque…`}
-            value={mensaje} onChange={(e) => setMensaje(e.target.value)} />
-          <p className="mt-1.5 text-[11px] text-tenue/70">
-            Se envía con el logo de FFPINS. Si el cliente responde, te llega a tu correo.
-          </p>
-        </div>
+        <label className="mb-1.5 block text-xs font-medium text-tenue">Asunto</label>
+        <input className="campo" placeholder="Sobre tu recarga, {nombre}"
+          value={asunto} onChange={(e) => setAsunto(e.target.value)} />
+
+        <label className="mb-1.5 mt-3.5 block text-xs font-medium text-tenue">Mensaje</label>
+        <textarea ref={areaRef} className="campo min-h-32 resize-y" rows={5}
+          placeholder={`Hola {nombre}, te escribo porque…`}
+          value={mensaje} onChange={(e) => setMensaje(e.target.value)} />
+
+        {(asunto || mensaje) && (
+          <div className="mt-3.5 rounded-xl border border-linea bg-panel2 p-3.5">
+            <p className="etiqueta mb-2 flex items-center gap-1.5">
+              <Eye size={12} /> Así lo recibe {cliente.nombre.split(' ')[0]}
+            </p>
+            <p className="text-sm font-semibold">{previaAsunto || 'Sin asunto'}</p>
+            <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-tenue">
+              {previaMensaje}
+            </p>
+          </div>
+        )}
 
         <div className="mt-5 flex gap-2">
           <button onClick={onCerrar} className="btn btn-suave flex-1">Cancelar</button>

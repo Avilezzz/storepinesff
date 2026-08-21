@@ -21,10 +21,15 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
     }[]
   }
 
+  const { data: { user } } = await sb.auth.getUser()
+
+  // La orden tiene que ser de quien mira. Un admin puede leer cualquiera por
+  // RLS, pero para revisar las ajenas está el panel, no esta pantalla.
   const { data } = await sb
     .from('orders')
     .select('id, numero, total_cents, estado, created_at, order_items(id, producto_nombre, cantidad, precio_unit_cents, subtotal_cents, products(imagen_url))')
     .eq('id', id)
+    .eq('user_id', user!.id)
     .maybeSingle()
 
   const orden = data as unknown as Orden | null

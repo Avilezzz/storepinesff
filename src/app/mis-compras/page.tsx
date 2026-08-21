@@ -13,9 +13,14 @@ export default async function MisCompras() {
   }
 
   const sb = await supabaseServer()
+  const { data: { user } } = await sb.auth.getUser()
+
+  // Sin este filtro, un admin vería aquí las compras de toda la tienda: RLS le
+  // permite leerlas y la consulta no pedía que fueran suyas.
   const { data, error } = await sb
     .from('orders')
     .select('id, numero, total_cents, estado, created_at, order_items(cantidad, producto_nombre, products(imagen_url))')
+    .eq('user_id', user!.id)
     .order('id', { ascending: false })
     .limit(50)
 

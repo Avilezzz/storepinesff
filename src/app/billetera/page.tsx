@@ -31,9 +31,14 @@ export default async function Billetera() {
 
   const [{ data: wallet }, { data: movRaw }, { data: solRaw }] = await Promise.all([
     sb.from('wallets').select('balance_cents').eq('user_id', user!.id).single(),
+    // El filtro por usuario es explícito a propósito: un admin puede ver por
+    // RLS los movimientos de todos, y esta pantalla es "mi billetera", no el
+    // panel. Sus datos de gestión están en /admin.
     sb.from('wallet_ledger').select('id, tipo, amount_cents, balance_after_cents, descripcion, created_at')
+      .eq('user_id', user!.id)
       .order('id', { ascending: false }).limit(40),
     sb.from('topup_requests').select('id, amount_cents, banco, estado, nota_admin, created_at')
+      .eq('user_id', user!.id)
       .order('id', { ascending: false }).limit(10),
   ])
 

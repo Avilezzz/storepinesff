@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { supabaseBrowser } from '@/lib/supabase-client'
 
 export type Sesion = {
@@ -21,7 +21,7 @@ const VACIA: Sesion = { uid: null, nombre: '', rol: 'CLIENTE', saldo: null, item
  */
 let estado: Sesion = VACIA
 let iniciado = false
-const oyentes = new Set<(s: Sesion) => void>()
+const oyentes = new Set<() => void>()
 
 // Guard SÍNCRONO. No puede vivir en `estado` porque cargar() es asíncrono:
 // entre la llamada y el emit hay una ventana donde un segundo evento de auth
@@ -31,7 +31,7 @@ let canal: ReturnType<ReturnType<typeof supabaseBrowser>['channel']> | null = nu
 
 function emitir(parcial: Partial<Sesion>) {
   estado = { ...estado, ...parcial }
-  oyentes.forEach((f) => f(estado))
+  oyentes.forEach((avisar) => avisar())
 }
 
 export function refrescarCarrito() {
@@ -113,15 +113,23 @@ function arrancar() {
   })
 }
 
+function suscribir(avisar: () => void) {
+  oyentes.add(avisar)
+  return () => { oyentes.delete(avisar) }
+}
+
+/**
+ * Lee el estado compartido de la sesión.
+ *
+ * Va con useSyncExternalStore y no con useState por la hidratación: el store
+ * es un módulo vivo que la barra superior ya llenó antes de que hidraten los
+ * componentes de más abajo. Con `useState(estado)` el primer render del cliente
+ * veía la sesión cargada mientras el HTML del servidor decía "cargando", y
+ * React descartaba el árbol. `getServerSnapshot` fuerza a que ese primer render
+ * use el mismo estado vacío que usó el servidor; el valor real llega en el
+ * siguiente, ya hidratado.
+ */
 export function useSesion(): Sesion {
-  const [local, setLocal] = useState(estado)
-
-  useEffect(() => {
-    arrancar()
-    oyentes.add(setLocal)
-    setLocal(estado)
-    return () => { oyentes.delete(setLocal) }
-  }, [])
-
-  return local
+  useEffect(() => { arrancar() }, [])
+  return useSyncExternalStore(suscribir, () => estado, () => VACIA)
 }

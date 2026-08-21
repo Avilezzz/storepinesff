@@ -71,6 +71,10 @@ export function mensajeError(raw: string | undefined): string {
   if (m.includes('RECLAMO_DUPLICADO'))  return 'Ya existe un reclamo para ese pin.'
   if (m.includes('MOTIVO_REQUERIDO'))   return 'Debes indicar un motivo.'
   if (m.includes('SOLO_ADMIN'))         return 'No tienes permisos para esta acción.'
+  if (m.includes('ASUNTO_VACIO'))       return 'Escribe el asunto del correo.'
+  if (m.includes('ASUNTO_LARGO'))       return 'El asunto es muy largo (máximo 120 caracteres).'
+  if (m.includes('MENSAJE_VACIO'))      return 'Escribe el mensaje.'
+  if (m.includes('SIN_CORREO'))         return 'Ese usuario no tiene correo registrado.'
   if (m.includes('TOPUP_REF_UQ'))       return 'Ese número de comprobante ya fue registrado.'
   if (m.includes('ROW-LEVEL SECURITY') || m.includes('ROW LEVEL SECURITY'))
     return 'Tienes 3 solicitudes de recarga pendientes. Espera a que se revisen.'

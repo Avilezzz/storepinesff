@@ -70,7 +70,7 @@ export default function AdminPlantillas({ plantillas }: { plantillas: Plantilla[
                     {!p.activo && <span className="chip bg-alerta/12 text-alerta">Oculta</span>}
                   </div>
                   <p className="mt-1 truncate text-xs text-tenue">{p.asunto}</p>
-                  <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-tenue/70">
+                  <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-tenue">
                     {p.cuerpo}
                   </p>
                 </div>
@@ -158,7 +158,7 @@ function ModalPlantilla({ plantilla, onCerrar, onListo }: {
       onClick={onCerrar}>
       <div onClick={(e) => e.stopPropagation()}
         className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-linea bg-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-5">
-        <h3 className="mb-4 text-base font-semibold tracking-tight">
+        <h3 className="subtitulo mb-4">
           {esNueva ? 'Nueva plantilla' : 'Editar plantilla'}
         </h3>
 
@@ -176,7 +176,7 @@ function ModalPlantilla({ plantilla, onCerrar, onListo }: {
             </button>
           ))}
         </div>
-        <p className="mt-1.5 text-[11px] text-tenue/70">
+        <p className="mt-1.5 text-[11px] text-tenue">
           {AMBITOS.find((a) => a.id === f.ambito)?.nota}
         </p>
 

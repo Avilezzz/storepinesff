@@ -98,7 +98,7 @@ export default function AdminNovedades({ stats }: { stats: Stats }) {
           placeholder="Escribe como le hablarías a un cliente. Usa {nombre} donde quieras su nombre."
           value={mensaje} onChange={(e) => setMensaje(e.target.value)} />
 
-        <p className="mt-2 text-[11px] leading-relaxed text-tenue/70">
+        <p className="mt-2 text-[11px] leading-relaxed text-tenue">
           Cada cliente recibe el texto con sus propios datos. Todos los correos llevan
           su enlace para darse de baja.
         </p>

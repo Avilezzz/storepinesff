@@ -106,7 +106,7 @@ export default function CuentaUI({ perfil, saldo, compras, proveedores }: {
           <Avatar nombre={perfil.nombre} size={52} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-base font-semibold tracking-tight text-fuerte">{perfil.nombre}</p>
+              <p className="subtitulo truncate">{perfil.nombre}</p>
               {perfil.rol === 'ADMIN' && (
                 <span className="chip bg-marca/12 text-marca"><ShieldCheck size={11} /> Admin</span>
               )}

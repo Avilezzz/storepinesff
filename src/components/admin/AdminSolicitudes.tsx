@@ -126,7 +126,7 @@ export default function AdminSolicitudes({ solicitudes, error }: {
                         <span className="inline-flex items-center gap-1 text-tenue">
                           <Mail size={11} /> {s.profiles?.email}
                         </span>
-                        <span className="ml-auto text-tenue/60">{fecha(s.created_at)}</span>
+                        <span className="ml-auto text-tenue">{fecha(s.created_at)}</span>
                       </div>
                     ))}
 

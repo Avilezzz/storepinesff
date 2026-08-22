@@ -64,7 +64,7 @@ export default function ModalAjuste({ cliente, onCerrar, onListo }: {
         <div className="flex items-center gap-3">
           <Avatar nombre={cliente.nombre} size={38} />
           <div>
-            <h3 className="text-base font-semibold tracking-tight">Ajustar saldo</h3>
+            <h3 className="subtitulo">Ajustar saldo</h3>
             <p className="cifra text-xs text-tenue">{cliente.nombre} · {usd(saldo)} actual</p>
           </div>
         </div>

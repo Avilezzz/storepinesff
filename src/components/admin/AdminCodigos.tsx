@@ -244,7 +244,7 @@ export default function AdminCodigos({ productos, libres }: {
                   <code className="min-w-0 flex-1 truncate font-mono text-xs tracking-wide">
                     {p.codigo}
                   </code>
-                  <span className="shrink-0 text-[11px] text-tenue/60">{fecha(p.created_at)}</span>
+                  <span className="shrink-0 text-[11px] text-tenue">{fecha(p.created_at)}</span>
                 </label>
               ))}
             </div>

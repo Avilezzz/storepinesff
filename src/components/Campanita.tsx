@@ -93,7 +93,7 @@ export default function Campanita({ uid }: { uid: string }) {
                 <>
                   <p className="text-sm font-medium">{n.titulo}</p>
                   {n.cuerpo && <p className="mt-0.5 text-xs leading-relaxed text-tenue">{n.cuerpo}</p>}
-                  <p className="mt-1 text-[11px] text-tenue/60">{fecha(n.created_at)}</p>
+                  <p className="mt-1 text-[11px] text-tenue">{fecha(n.created_at)}</p>
                 </>
               )
               return n.url ? (

@@ -50,12 +50,12 @@ export default function SelectorPlantillas({ ambito, onElegir, onInsertar }: {
                 className="flex items-baseline gap-2 rounded px-1.5 py-1 text-left transition hover:bg-panel">
                 <code className="cifra shrink-0 text-[11px] text-marca">{x.v}</code>
                 <span className="min-w-0 flex-1 truncate text-[11px] text-tenue">{x.d}</span>
-                <span className="shrink-0 text-[10px] text-tenue/60">{x.e}</span>
+                <span className="shrink-0 text-[10px] text-tenue">{x.e}</span>
               </button>
             ))}
           </div>
           {onInsertar && (
-            <p className="mt-2 text-[10px] text-tenue/60">Toca una para insertarla en el mensaje.</p>
+            <p className="mt-2 text-[10px] text-tenue">Toca una para insertarla en el mensaje.</p>
           )}
         </div>
       )}

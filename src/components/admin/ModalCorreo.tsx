@@ -68,7 +68,7 @@ export default function ModalCorreo({ cliente, onCerrar }: {
         <div className="mb-4 flex items-center gap-3">
           <Avatar nombre={cliente.nombre} size={38} />
           <div className="min-w-0">
-            <h3 className="text-base font-semibold tracking-tight">Escribir a {cliente.nombre}</h3>
+            <h3 className="subtitulo">Escribir a {cliente.nombre}</h3>
             <p className="truncate text-xs text-tenue">{cliente.email}</p>
           </div>
         </div>

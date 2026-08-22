@@ -67,7 +67,7 @@ export default function FichaCliente({ cliente }: { cliente: Cliente }) {
               {!p.activo && <span className="chip bg-error/12 text-error">Inactivo</span>}
             </div>
             <p className="truncate text-sm text-tenue">{p.email}</p>
-            <p className="text-xs text-tenue/70">
+            <p className="text-xs text-tenue">
               {tel ?? 'Sin teléfono'} · cliente desde {fecha(p.created_at)}
             </p>
           </div>
@@ -154,7 +154,7 @@ export default function FichaCliente({ cliente }: { cliente: Cliente }) {
                   )}
                 </div>
                 <p className="truncate text-xs text-tenue">{o.detalle}</p>
-                <p className="mt-0.5 text-[11px] text-tenue/60">{fecha(o.created_at)}</p>
+                <p className="mt-0.5 text-[11px] text-tenue">{fecha(o.created_at)}</p>
               </div>
               <p className="cifra shrink-0 text-sm font-semibold">{usd(o.total_cents)}</p>
             </div>
@@ -169,7 +169,7 @@ export default function FichaCliente({ cliente }: { cliente: Cliente }) {
             <div key={m.id} className="flex items-center gap-3 p-3.5">
               <div className="min-w-0 flex-1">
                 <p className="text-sm">{m.descripcion ?? m.tipo}</p>
-                <p className="mt-0.5 text-[11px] text-tenue/60">{fecha(m.created_at)}</p>
+                <p className="mt-0.5 text-[11px] text-tenue">{fecha(m.created_at)}</p>
               </div>
               <div className="shrink-0 text-right">
                 <p className={`cifra text-sm font-semibold ${m.amount_cents > 0 ? 'text-ok' : ''}`}>
@@ -190,7 +190,7 @@ export default function FichaCliente({ cliente }: { cliente: Cliente }) {
               <div className="min-w-0 flex-1">
                 <p className="cifra text-sm font-medium">{usd(t.amount_cents)}</p>
                 <p className="truncate text-xs text-tenue">{t.banco}</p>
-                <p className="mt-0.5 text-[11px] text-tenue/60">{fecha(t.created_at)}</p>
+                <p className="mt-0.5 text-[11px] text-tenue">{fecha(t.created_at)}</p>
               </div>
               <span className={`chip shrink-0 ${
                 t.estado === 'APROBADA'  ? 'bg-ok/12 text-ok'
@@ -245,7 +245,7 @@ function Kpi({ etiqueta, valor, nota }: { etiqueta: string; valor: string; nota?
     <div className="tarjeta px-3.5 py-3">
       <p className="etiqueta">{etiqueta}</p>
       <p className="cifra mt-1 text-lg font-semibold">{valor}</p>
-      {nota && <p className="mt-0.5 text-[11px] text-tenue/70">{nota}</p>}
+      {nota && <p className="mt-0.5 text-[11px] text-tenue">{nota}</p>}
     </div>
   )
 }

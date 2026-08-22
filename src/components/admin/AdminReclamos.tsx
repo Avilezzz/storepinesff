@@ -141,7 +141,7 @@ function Cabecera({ r }: { r: Reclamo }) {
           <p className="truncate text-xs text-tenue">
             {r.profiles?.nombre} · {r.order_items?.producto_nombre}
           </p>
-          <p className="mt-0.5 text-[11px] text-tenue/60">{fecha(r.created_at)}</p>
+          <p className="mt-0.5 text-[11px] text-tenue">{fecha(r.created_at)}</p>
         </div>
         <span className={`chip shrink-0 ${estilo}`}>{texto}</span>
       </div>

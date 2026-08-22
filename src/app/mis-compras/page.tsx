@@ -58,7 +58,7 @@ export default async function MisCompras() {
                 <p className="truncate text-xs text-tenue">
                   {o.order_items.map((i) => `${i.cantidad}× ${i.producto_nombre}`).join(' · ')}
                 </p>
-                <p className="mt-0.5 text-[11px] text-tenue/60">{fecha(o.created_at)}</p>
+                <p className="mt-0.5 text-[11px] text-tenue">{fecha(o.created_at)}</p>
               </div>
 
               <p className="cifra text-sm font-semibold">{usd(o.total_cents)}</p>

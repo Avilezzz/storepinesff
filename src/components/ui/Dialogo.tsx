@@ -76,7 +76,7 @@ export default function Dialogo({
         className="w-full max-w-md rounded-t-2xl border border-linea bg-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-2xl sm:pb-5"
       >
         <div className="mb-1 flex items-start justify-between gap-4">
-          <h3 className="text-base font-semibold tracking-tight">{titulo}</h3>
+          <h3 className="subtitulo">{titulo}</h3>
           <button onClick={onCerrar} aria-label="Cerrar"
             className="-mr-1 -mt-1 rounded-lg p-1.5 text-tenue transition hover:bg-panel2 hover:text-fuerte">
             <X size={18} />

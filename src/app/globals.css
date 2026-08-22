@@ -81,6 +81,11 @@ body {
   text-transform: uppercase;
   color: var(--color-tenue);
 }
+
+/* Para texto solo hay dos colores: `fuerte` y `tenue`. Nada de `text-tenue/60`
+   ni opacidades parecidas: bajan el contraste a 2.4:1 cuando el mínimo legible
+   es 4.5:1, y se notaba sobre todo en los textos de 11px del panel. La jerarquía
+   la da el tamaño, no la transparencia. */
 .cifra { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 
 /* Resplandor de marca, puramente decorativo. */

@@ -99,7 +99,7 @@ export default function AdminUsuarios({ clientes, totales, q, orden }: {
                     {e && <span className={`chip shrink-0 ${e.clase}`}>{e.txt}</span>}
                   </div>
                   <p className="truncate text-xs text-tenue">{c.email}</p>
-                  <p className="text-[11px] text-tenue/70">
+                  <p className="text-[11px] text-tenue">
                     {c.ordenes === 0 ? `Se registró ${fecha(c.created_at)}`
                       : `${c.ordenes} compra${c.ordenes === 1 ? '' : 's'} · última ${fecha(c.ultima_compra!)}`}
                   </p>

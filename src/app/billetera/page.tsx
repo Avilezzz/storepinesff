@@ -70,7 +70,7 @@ export default async function Billetera() {
                     <div className="min-w-0">
                       <p className="cifra text-sm font-medium">{usd(s.amount_cents)}</p>
                       <p className="text-xs text-tenue">{s.banco}</p>
-                      <p className="mt-0.5 text-[11px] text-tenue/60">{fecha(s.created_at)}</p>
+                      <p className="mt-0.5 text-[11px] text-tenue">{fecha(s.created_at)}</p>
                     </div>
                     <span className={`chip shrink-0 ${e.clase}`}>{e.txt}</span>
                   </div>
@@ -107,7 +107,7 @@ export default async function Billetera() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">{ETIQUETA[m.tipo] ?? m.tipo}</p>
                   {m.descripcion && <p className="truncate text-xs text-tenue">{m.descripcion}</p>}
-                  <p className="mt-0.5 text-[11px] text-tenue/60">{fecha(m.created_at)}</p>
+                  <p className="mt-0.5 text-[11px] text-tenue">{fecha(m.created_at)}</p>
                 </div>
 
                 <div className="shrink-0 text-right">

@@ -1,4 +1,9 @@
 import type { Metadata, Viewport } from 'next'
+import Link from 'next/link'
+import {
+  SITIO, MARCA, LOCALE, CLAVES, DESCRIPCION, VERIFICACION_GOOGLE,
+  jsonLdTienda, jsonLdSitio,
+} from '@/lib/seo'
 import { Geist } from 'next/font/google'
 import { Toaster } from 'sonner'
 import Navbar from '@/components/Navbar'
@@ -8,8 +13,40 @@ import './globals.css'
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'], display: 'swap' })
 
 export const metadata: Metadata = {
-  title: 'FFPINS — Diamantes Free Fire',
-  description: 'Compra pines de diamantes para Free Fire con entrega inmediata. Recarga tu saldo por transferencia bancaria.',
+  // Sin metadataBase, Next no puede convertir las rutas de las imágenes de
+  // Open Graph en absolutas, y WhatsApp o Facebook no muestran la miniatura.
+  metadataBase: new URL(SITIO),
+  title: {
+    default: 'Diamantes Free Fire Ecuador — Pines con entrega inmediata | FFPINS',
+    template: '%s | FFPINS',
+  },
+  description: DESCRIPCION,
+  keywords: CLAVES,
+  applicationName: MARCA,
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    locale: LOCALE,
+    url: SITIO,
+    siteName: MARCA,
+    title: 'Diamantes Free Fire Ecuador — Pines con entrega inmediata',
+    description: DESCRIPCION,
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'FFPINS — Diamantes Free Fire Ecuador' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Diamantes Free Fire Ecuador — FFPINS',
+    description: DESCRIPCION,
+    images: ['/og.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
+  },
+  category: 'shopping',
+  // Solo aparece si hay código puesto en lib/seo.ts.
+  ...(VERIFICACION_GOOGLE ? { verification: { google: VERIFICACION_GOOGLE } } : {}),
 }
 
 export const viewport: Viewport = {
@@ -37,10 +74,15 @@ try {
 `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // lang es-EC y no "es" a secas: le dice al buscador que esto es para Ecuador.
   return (
-    <html lang="es" data-tema="claro" className={`${geist.variable} h-full`} suppressHydrationWarning>
+    <html lang="es-EC" data-tema="claro" className={`${geist.variable} h-full`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+        {/* Identidad de la tienda para el buscador: quién vende, dónde y cómo
+            se paga. Va en el layout porque vale para todas las páginas. */}
+        <script type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLdTienda(), jsonLdSitio()]) }} />
       </head>
       <body className="flex min-h-full flex-col">
         <Navbar />
@@ -48,8 +90,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* El padding inferior deja sitio a la barra de navegación móvil. */}
         <main className="flex-1 pb-20 sm:pb-0">{children}</main>
 
-        <footer className="hidden border-t border-linea py-6 text-center text-xs text-tenue sm:block">
-          FFPINS · El saldo es crédito de tienda, no reembolsable en efectivo.
+        {/* En móvil también se ve: los enlaces legales tienen que estar
+            accesibles desde cualquier página, no solo en escritorio. */}
+        <footer className="border-t border-linea px-4 py-6 text-center text-xs text-tenue">
+          <p>FFPINS · El saldo es crédito de tienda, no reembolsable en efectivo.</p>
+          <p className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            <Link href="/legal/terminos" className="hover:text-marca">Términos y Condiciones</Link>
+            <span aria-hidden>·</span>
+            <Link href="/legal/privacidad" className="hover:text-marca">Política de Privacidad</Link>
+          </p>
+          <p className="mt-2 text-tenue">
+            Tienda independiente. Sin relación con Garena ni Free Fire.
+          </p>
         </footer>
 
         <BarraMovil />

@@ -8,6 +8,7 @@ import Logo from '@/components/ui/Logo'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { mensajeError } from '@/lib/format'
+import { VERSION_LEGAL, EDAD_MINIMA } from '@/lib/legal'
 import BotonGoogle, { Separador } from '@/components/BotonGoogle'
 
 export default function Registro() {
@@ -15,6 +16,7 @@ export default function Registro() {
   const router = useRouter()
   const [f, setF] = useState({ nombre: '', telefono: '', email: '', pass: '', pass2: '' })
   const [ver, setVer] = useState(false)
+  const [acepta, setAcepta] = useState(false)
   const [cargando, setCargando] = useState(false)
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -29,6 +31,7 @@ export default function Registro() {
     if (!/^(\+593\d{9}|0\d{9})$/.test(tel))     return toast.error('Teléfono inválido. Usa 09XXXXXXXX.')
     if (f.pass.length < 8)                      return toast.error('La contraseña debe tener al menos 8 caracteres.')
     if (f.pass !== f.pass2)                     return toast.error('Las contraseñas no coinciden.')
+    if (!acepta) return toast.error('Debes aceptar los términos y la política de privacidad.')
 
     setCargando(true)
     const { error } = await sb.auth.signUp({
@@ -41,6 +44,10 @@ export default function Registro() {
       setCargando(false)
       return toast.error(mensajeError(error.message))
     }
+
+    // Queda anotado qué versión aceptó y cuándo: la LOPDP exige poder
+    // demostrar el consentimiento, no solo haberlo pedido.
+    await sb.rpc('fn_aceptar_terminos', { p_version: VERSION_LEGAL })
 
     toast.success(`¡Bienvenido, ${f.nombre.trim().split(' ')[0]}!`)
     router.push('/')
@@ -83,6 +90,23 @@ export default function Registro() {
           <Campo etiqueta="Repite la contraseña" tipo={ver ? 'text' : 'password'}
             valor={f.pass2} onChange={set('pass2')} autoComplete="new-password" />
 
+          {/* El consentimiento va desmarcado y como paso aparte: la LOPDP pide
+              que sea una acción voluntaria, no una casilla ya marcada. */}
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg bg-panel2 p-3">
+            <input type="checkbox" checked={acepta} onChange={(e) => setAcepta(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-marca)]" />
+            <span className="text-[11px] leading-relaxed text-tenue">
+              Soy mayor de {EDAD_MINIMA} años y he leído los{' '}
+              <Link href="/legal/terminos" target="_blank" className="text-marca underline">
+                Términos y Condiciones
+              </Link>{' '}
+              y la{' '}
+              <Link href="/legal/privacidad" target="_blank" className="text-marca underline">
+                Política de Privacidad
+              </Link>. Entiendo que el saldo es crédito de tienda y no se devuelve en efectivo.
+            </span>
+          </label>
+
           <button disabled={cargando} className="btn btn-primario w-full">
             {cargando ? <><Loader2 size={15} className="animate-spin" /> Creando cuenta…</> : 'Crear cuenta'}
           </button>
@@ -91,8 +115,9 @@ export default function Registro() {
           <BotonGoogle />
 
           <p className="text-center text-[11px] leading-relaxed text-tenue">
-            Al registrarte aceptas que el saldo es crédito de tienda y no se
-            devuelve en efectivo.
+            Al continuar con Google aceptas los{' '}
+            <Link href="/legal/terminos" target="_blank" className="underline">Términos</Link> y la{' '}
+            <Link href="/legal/privacidad" target="_blank" className="underline">Política de Privacidad</Link>.
           </p>
         </form>
 

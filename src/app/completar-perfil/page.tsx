@@ -1,11 +1,13 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Gem, Loader2, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { mensajeError } from '@/lib/format'
+import { VERSION_LEGAL, EDAD_MINIMA } from '@/lib/legal'
 
 export default function CompletarPerfil() {
   return (
@@ -21,6 +23,7 @@ function Formulario() {
   const volver = useSearchParams().get('volver') ?? '/'
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
+  const [acepta, setAcepta] = useState(false)
   const [guardando, setGuardando] = useState(false)
 
   // Google trae el nombre; solo se pide si vino vacío o de relleno.
@@ -56,6 +59,7 @@ function Formulario() {
     const tel = telefono.replace(/[\s()-]/g, '')
     if (!/^(\+593\d{9}|0\d{9})$/.test(tel)) return toast.error('Teléfono inválido. Usa 09XXXXXXXX.')
     if (pedirNombre && nombre.trim().length < 3) return toast.error('Escribe tu nombre completo.')
+    if (!acepta) return toast.error('Debes aceptar los términos y la política de privacidad.')
 
     setGuardando(true)
     const { data: { user } } = await sb.auth.getUser()
@@ -73,6 +77,7 @@ function Formulario() {
     // El teléfono también va al metadata de la sesión: el middleware lo lee de
     // ahí para saber si el perfil está completo, sin consultar la base.
     await sb.auth.updateUser({ data: { telefono: tel, ...(pedirNombre ? { nombre: nombre.trim() } : {}) } })
+    await sb.rpc('fn_aceptar_terminos', { p_version: VERSION_LEGAL })
 
     setGuardando(false)
     toast.success('¡Listo! Tu cuenta quedó completa.')
@@ -112,6 +117,24 @@ function Formulario() {
                 value={telefono} onChange={(e) => setTelefono(e.target.value)} />
             </div>
           </div>
+
+          {/* Quien entra con Google no pasa por el registro, así que su
+              consentimiento se recoge aquí: es el único paso obligatorio que
+              atraviesa antes de poder comprar. */}
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg bg-panel2 p-3">
+            <input type="checkbox" checked={acepta} onChange={(e) => setAcepta(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-marca)]" />
+            <span className="text-[11px] leading-relaxed text-tenue">
+              Soy mayor de {EDAD_MINIMA} años y he leído los{' '}
+              <Link href="/legal/terminos" target="_blank" className="text-marca underline">
+                Términos y Condiciones
+              </Link>{' '}
+              y la{' '}
+              <Link href="/legal/privacidad" target="_blank" className="text-marca underline">
+                Política de Privacidad
+              </Link>.
+            </span>
+          </label>
 
           <button disabled={guardando} className="btn btn-primario w-full">
             {guardando ? <><Loader2 size={15} className="animate-spin" /> Guardando…</> : 'Continuar'}

@@ -79,18 +79,20 @@ export default function ModalProducto({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl rounded-t-2xl border border-linea bg-panel shadow-2xl sm:rounded-2xl"
+        className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-t-2xl border border-linea bg-panel shadow-2xl sm:max-h-none sm:overflow-visible sm:rounded-2xl"
       >
-        <div className="grid sm:grid-cols-2">
-          {/* Arte grande: en el catálogo se ve recortado dentro de una card
-              chica, y aquí es lo primero que el usuario quiere mirar. */}
-          <div className="relative">
+        <div className="sm:grid sm:grid-cols-2">
+          {/* El arte grande solo tiene sentido en escritorio, donde ocupa una
+              columna. En móvil se llevaba la pantalla entera y empujaba fuera
+              de vista lo que el usuario vino a hacer: elegir cuántos y comprar.
+              Ahí baja a miniatura junto al nombre. */}
+          <div className="relative hidden sm:block">
             <ImagenProducto
               url={p.imagen_url}
               alt={p.nombre}
               iconoSize={64}
-              sizes="(min-width: 640px) 384px, 100vw"
-              className="aspect-4/3 w-full rounded-t-2xl sm:aspect-4/5 sm:rounded-l-2xl sm:rounded-tr-none"
+              sizes="384px"
+              className="aspect-4/5 w-full rounded-l-2xl"
             />
 
             {agotado && (
@@ -101,27 +103,44 @@ export default function ModalProducto({
                 </span>
               </>
             )}
-
-            <button
-              ref={cerrarRef}
-              onClick={onCerrar}
-              aria-label="Cerrar"
-              className="absolute right-2 top-2 rounded-lg bg-base/70 p-1.5 text-fuerte backdrop-blur-sm transition hover:bg-base"
-            >
-              <X size={18} />
-            </button>
           </div>
 
-          <div className="flex flex-col gap-4 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5">
-            <div>
-              <h3 className="titulo">{p.nombre}</h3>
-              <p className="cifra mt-1 text-sm text-tenue">
-                {p.diamantes.toLocaleString('es-EC')} diamantes
-                <span aria-hidden> 💎</span>
-              </p>
+          <div className="flex flex-col gap-4 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5 sm:pb-5">
+            {/* Asa: le dice al pulgar que esta hoja se puede cerrar. */}
+            <span aria-hidden className="mx-auto -mt-1 h-1 w-10 rounded-full bg-linea sm:hidden" />
+
+            <div className="flex items-start gap-3">
+              <ImagenProducto
+                url={p.imagen_url}
+                alt=""
+                iconoSize={26}
+                sizes="64px"
+                className={`size-16 shrink-0 rounded-xl sm:hidden ${agotado ? 'opacity-60' : ''}`}
+              />
+
+              <div className="min-w-0 flex-1">
+                <h3 className="titulo truncate text-lg sm:whitespace-normal sm:text-[1.375rem]">{p.nombre}</h3>
+                <p className="cifra mt-0.5 text-sm text-tenue">
+                  {p.diamantes.toLocaleString('es-EC')} diamantes
+                  <span aria-hidden> 💎</span>
+                </p>
+                <div className="mt-1.5 flex items-baseline gap-2 sm:hidden">
+                  <p className="cifra text-2xl font-semibold text-marca">{usd(p.precio_cents)}</p>
+                  <span className="text-[11px] text-tenue">por pin</span>
+                </div>
+              </div>
+
+              <button
+                ref={cerrarRef}
+                onClick={onCerrar}
+                aria-label="Cerrar"
+                className="-mr-1 -mt-1 shrink-0 rounded-lg p-1.5 text-tenue transition hover:bg-panel2 hover:text-fuerte"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <div className="flex items-baseline gap-2">
+            <div className="hidden items-baseline gap-2 sm:flex">
               <p className="cifra text-3xl font-semibold text-marca">{usd(p.precio_cents)}</p>
               <span className="text-xs text-tenue">por pin</span>
             </div>
@@ -132,11 +151,13 @@ export default function ModalProducto({
                 : 'bg-ok/15 text-ok ring-1 ring-ok/30'}`}>
                 {agotado ? 'Sin stock' : `${stock} disponibles`}
               </span>
-              <span className="chip bg-panel2 text-tenue"><Zap size={12} /> Entrega inmediata</span>
-              <span className="chip bg-panel2 text-tenue"><ShieldCheck size={12} /> Pin oficial</span>
+              {/* Sellos de confianza: en móvil el espacio se reserva para la
+                  compra, así que no compiten con ella. */}
+              <span className="chip hidden bg-panel2 text-tenue sm:inline-flex"><Zap size={12} /> Entrega inmediata</span>
+              <span className="chip hidden bg-panel2 text-tenue sm:inline-flex"><ShieldCheck size={12} /> Pin oficial</span>
             </div>
 
-            <p className="text-sm leading-relaxed text-tenue">
+            <p className="text-xs leading-relaxed text-tenue sm:text-sm">
               Al comprarlo recibes el código del pin en <span className="text-fuerte">Mis compras</span>,
               listo para canjear en la página oficial de recargas. Se descuenta del saldo de tu billetera.
             </p>
@@ -145,7 +166,7 @@ export default function ModalProducto({
               <button
                 onClick={() => onSolicitar(p)}
                 disabled={ocupado || pedido}
-                className={`btn mt-auto w-full ${pedido ? 'btn-suave' : 'btn-primario'}`}
+                className={`btn mt-auto w-full py-2.5 sm:py-[0.5625rem] ${pedido ? 'btn-suave' : 'btn-primario'}`}
               >
                 {ocupado ? <Loader2 size={15} className="animate-spin" />
                   : pedido ? <><BellRing size={15} className="text-ok" /> Te avisaremos</>
@@ -160,18 +181,18 @@ export default function ModalProducto({
                       onClick={() => setCantidad((c) => Math.max(1, c - 1))}
                       disabled={cantidad <= 1}
                       aria-label="Quitar uno"
-                      className="btn-icono h-7 min-w-7"
+                      className="btn-icono h-9 min-w-9 sm:h-7 sm:min-w-7"
                     >
                       <Minus size={15} />
                     </button>
-                    <span aria-live="polite" className="cifra w-8 text-center text-sm font-semibold text-fuerte">
+                    <span aria-live="polite" className="cifra w-9 text-center text-base font-semibold text-fuerte sm:w-8 sm:text-sm">
                       {cantidad}
                     </span>
                     <button
                       onClick={() => setCantidad((c) => Math.min(tope, c + 1))}
                       disabled={cantidad >= tope}
                       aria-label="Agregar uno"
-                      className="btn-icono h-7 min-w-7"
+                      className="btn-icono h-9 min-w-9 sm:h-7 sm:min-w-7"
                     >
                       <Plus size={15} />
                     </button>
@@ -186,7 +207,7 @@ export default function ModalProducto({
                 <button
                   onClick={() => onAgregar(p, cantidad)}
                   disabled={ocupado}
-                  className="btn btn-primario w-full"
+                  className="btn btn-primario w-full py-2.5 sm:py-[0.5625rem]"
                 >
                   {ocupado ? <Loader2 size={15} className="animate-spin" />
                     : <><Check size={15} /> Agregar al carrito</>}

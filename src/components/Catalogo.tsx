@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Check, Loader2, BellRing, BellPlus } from 'lucide-react'
+import { Plus, Check, Loader2, BellRing, BellPlus, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { useSesion, refrescarCarrito } from '@/lib/sesion'
 import { usd, mensajeError } from '@/lib/format'
 import ImagenProducto from './ImagenProducto'
+import ModalProducto from './ModalProducto'
 
 export type Producto = {
   id: string
@@ -29,6 +30,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [listo, setListo] = useState<string | null>(null)
   const [pedidos, setPedidos] = useState<Set<string>>(new Set())
+  const [detalle, setDetalle] = useState<Producto | null>(null)
 
   // El catálogo llega de una página cacheada, así que el stock puede venir
   // desfasado. Realtime lo corrige al montar y con cada compra ajena.
@@ -75,7 +77,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
     })
   }
 
-  async function agregar(p: Producto) {
+  async function agregar(p: Producto, cantidad = 1) {
     if (!uid) return router.push('/login?volver=/')
 
     setOcupado(p.id)
@@ -85,16 +87,17 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
 
     const { error } = await sb.rpc('fn_cart_set', {
       p_product_id: p.id,
-      p_cantidad: Math.min(actual + 1, 50),
+      p_cantidad: Math.min(actual + cantidad, 50),
     })
     setOcupado(null)
 
     if (error) return toast.error(mensajeError(error.message))
 
+    setDetalle(null)
     refrescarCarrito()
     setListo(p.id)
     setTimeout(() => setListo(null), 1400)
-    toast.success(`${p.nombre} en el carrito`, {
+    toast.success(`${cantidad > 1 ? `${cantidad} × ` : ''}${p.nombre} en el carrito`, {
       action: { label: 'Ver carrito', onClick: () => router.push('/carrito') },
     })
   }
@@ -117,10 +120,17 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
           return (
             <article key={p.id}
               className={`tarjeta group flex flex-col overflow-hidden transition ${
-                agotado ? 'border-error/30' : 'hover:border-marca/40'}`}>
+                agotado ? 'border-error/40' : 'border-ok/40 hover:border-ok/60'}`}>
               {/* La imagen es la card: el arte ya trae la cantidad de diamantes,
                   así que abajo solo queda el precio y la acción. */}
-              <div className="relative">
+              {/* Toda el arte abre el detalle: es el área grande y obvia de
+                  tocar, y deja el botón de abajo libre para la compra rápida. */}
+              <button
+                type="button"
+                onClick={() => setDetalle(p)}
+                aria-label={`Ver detalle de ${p.nombre}`}
+                className="relative block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-marca"
+              >
                 <ImagenProducto
                   url={p.imagen_url}
                   alt={p.nombre}
@@ -142,12 +152,16 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                     Agotado
                   </span>
                 ) : (
-                  <span className={`chip absolute left-2 top-2 backdrop-blur-sm ${
-                    s <= 5 ? 'bg-alerta/25 text-alerta' : 'bg-base/70 text-ok'}`}>
+                  <span className={`chip absolute left-2 top-2 backdrop-blur-sm font-bold ${
+                    s <= 5 ? 'bg-ok/30 text-ok ring-1 ring-ok/40' : 'bg-base/70 text-ok'}`}>
                     {`${s} disp.`}
                   </span>
                 )}
-              </div>
+
+                <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-base/75 py-1 text-[11px] font-medium text-fuerte opacity-0 backdrop-blur-sm transition group-hover:opacity-100">
+                  <Eye size={12} /> Ver detalle
+                </span>
+              </button>
 
               <div className="flex flex-1 flex-col justify-end gap-2.5 p-3">
                 <div className="flex items-baseline justify-between gap-2">
@@ -192,6 +206,16 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
       {productos.length === 0 && (
         <p className="py-16 text-center text-sm text-tenue">Aún no hay productos publicados.</p>
       )}
+
+      <ModalProducto
+        producto={detalle}
+        stock={detalle ? stock[detalle.id] ?? 0 : 0}
+        ocupado={ocupado === detalle?.id}
+        pedido={detalle ? pedidos.has(detalle.id) : false}
+        onAgregar={agregar}
+        onSolicitar={solicitar}
+        onCerrar={() => setDetalle(null)}
+      />
     </section>
   )
 }

@@ -51,16 +51,25 @@ export default function ContenidoSeo() {
       </div>
 
       <h2 className="titulo mt-10">Preguntas frecuentes</h2>
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-3">
         {PREGUNTAS.map(({ p, r }) => (
-          // <details> nativo: el texto está en el HTML aunque se vea cerrado,
-          // así que el buscador lo lee igual y funciona sin JavaScript.
-          <details key={p} className="tarjeta group p-4 sm:p-5">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium">
-              <h3 className="text-sm font-medium">{p}</h3>
-              <span aria-hidden className="shrink-0 text-tenue transition group-open:rotate-45">+</span>
+          <details key={p} className="tarjeta group p-4 transition-all hover:border-marca/40 open:border-marca/50 sm:p-5">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-fuerte">
+              <div className="flex items-center gap-3">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-marca/12 text-xs font-bold text-marca">
+                  ?
+                </span>
+                <h3 className="text-sm font-semibold text-fuerte transition-colors group-hover:text-marca sm:text-base">
+                  {p}
+                </h3>
+              </div>
+              <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-panel2 text-sm font-bold text-marca transition-transform duration-200 group-open:rotate-45">
+                +
+              </span>
             </summary>
-            <p className="mt-3 text-sm leading-relaxed text-tenue">{r}</p>
+            <p className="mt-3 border-t border-linea/60 pt-3 text-xs leading-relaxed text-tenue sm:pl-9 sm:text-sm">
+              {r}
+            </p>
           </details>
         ))}
       </div>
@@ -87,7 +96,7 @@ function Paso({ n, Icono, titulo, children }: {
         </span>
         <Icono size={16} className="text-tenue" />
       </div>
-      <h3 className="mt-2.5 text-sm font-semibold">{titulo}</h3>
+      <h3 className="mt-2.5 text-sm font-semibold text-fuerte">{titulo}</h3>
       <p className="mt-1 text-[13px] leading-relaxed text-tenue">{children}</p>
     </div>
   )

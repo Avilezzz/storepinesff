@@ -9,10 +9,10 @@
 @theme {
   --color-base:        #f6f7f9;   /* fondo de la página            */
   --color-panel:       #ffffff;   /* tarjetas y superficies        */
-  --color-panel2:      #eff1f5;   /* campos, hover, zonas hundidas */
-  --color-linea:       #e2e6ec;   /* bordes                        */
-  --color-tenue:       #5d6779;   /* texto secundario              */
-  --color-fuerte:      #0e1320;   /* texto principal y titulares   */
+  --color-panel2:      #eff2f6;   /* campos, hover, zonas hundidas */
+  --color-linea:       #dbe0e8;   /* bordes nítidos                */
+  --color-tenue:       #475467;   /* texto secundario nítido       */
+  --color-fuerte:      #0b0f19;   /* texto principal de alto contraste */
   --color-marca:       #c2410c;   /* naranja de marca              */
   --color-marca2:      #b91c1c;
   --color-sobre-marca: #ffffff;   /* texto encima del naranja      */
@@ -27,15 +27,15 @@
 /* En oscuro el naranja puede ser más vivo: sobre fondo negro contrasta de
    sobra, mientras que en claro tuvo que oscurecerse para poder leerse. */
 :root[data-tema='oscuro'] {
-  --color-base:        #0a0c10;
-  --color-panel:       #12151c;
-  --color-panel2:      #191d26;
-  --color-linea:       #232833;
-  --color-tenue:       #8a92a6;
-  --color-fuerte:      #ffffff;
+  --color-base:        #090b0f;
+  --color-panel:       #11141b;
+  --color-panel2:      #181c26;
+  --color-linea:       #242938;
+  --color-tenue:       #94a3b8;   /* slate-400 claro y legible */
+  --color-fuerte:      #f8fafc;   /* blanco nítido             */
   --color-marca:       #ff7a18;
   --color-marca2:      #ff4d4d;
-  --color-sobre-marca: #150c04;
+  --color-sobre-marca: #090b0f;
   --color-ok:          #22c55e;
   --color-alerta:      #f59e0b;
   --color-error:       #ef4444;
@@ -60,148 +60,165 @@ body {
 
 /* ── Tipografía ────────────────────────────────────────────────────────────
    Una sola escala para toda la app. Los títulos van apretados y sin peso
-   excesivo: el contraste lo dan el tamaño y el espacio, no la negrita.     */
-.titulo {
-  font-size: 1.375rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  color: var(--color-fuerte);
-}
-.subtitulo {
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--color-fuerte);
-}
-.etiqueta {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-tenue);
+   excesivo: el contraste lo dan el tamaño y el espacio, no la negrita.
+
+   Van en @layer components para que las utilidades de Tailwind (text-fuerte,
+   text-marca, etc.) puedan sobreescribirlos cuando sea necesario.         */
+@layer components {
+  .titulo {
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--color-fuerte);
+  }
+  .subtitulo {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-fuerte);
+  }
+  .etiqueta {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-tenue);
+  }
 }
 
 /* Para texto solo hay dos colores: `fuerte` y `tenue`. Nada de `text-tenue/60`
    ni opacidades parecidas: bajan el contraste a 2.4:1 cuando el mínimo legible
    es 4.5:1, y se notaba sobre todo en los textos de 11px del panel. La jerarquía
    la da el tamaño, no la transparencia. */
-.cifra { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+@layer components {
+  .cifra { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 
-/* Resplandor de marca, puramente decorativo. */
-.aura {
-  background:
-    radial-gradient(55rem 26rem at 15% -20%, color-mix(in srgb, var(--color-marca) 10%, transparent), transparent 62%),
-    radial-gradient(45rem 24rem at 88% -10%, color-mix(in srgb, var(--color-marca2) 8%, transparent), transparent 62%);
-}
+  /* Resplandor de marca, puramente decorativo. */
+  .aura {
+    background:
+      radial-gradient(55rem 26rem at 15% -20%, color-mix(in srgb, var(--color-marca) 10%, transparent), transparent 62%),
+      radial-gradient(45rem 24rem at 88% -10%, color-mix(in srgb, var(--color-marca2) 8%, transparent), transparent 62%);
+  }
 
-.tarjeta {
-  background: var(--color-panel);
-  border: 1px solid var(--color-linea);
-  border-radius: 0.875rem;
-  box-shadow: var(--sombra-tarjeta);
+  .tarjeta {
+    background: var(--color-panel);
+    border: 1px solid var(--color-linea);
+    border-radius: 0.875rem;
+    box-shadow: var(--sombra-tarjeta);
+  }
 }
 
 /* Piezas con una versión por tema, como el logo: las alterna el CSS a partir
    del atributo que el script del <head> deja puesto antes de pintar. */
-.solo-oscuro { display: none; }
+@layer components {
+  .solo-oscuro { display: none; }
+}
 :root[data-tema='oscuro'] .solo-claro  { display: none; }
 :root[data-tema='oscuro'] .solo-oscuro { display: block; }
 
 /* Velo de los diálogos. Oscuro en ambos temas: su trabajo es apagar el fondo. */
-.velo {
-  background: rgb(9 11 16 / 0.55);
-  backdrop-filter: blur(4px);
+@layer components {
+  .velo {
+    background: rgb(9 11 16 / 0.55);
+    backdrop-filter: blur(4px);
+  }
 }
 
 /* ── Formularios ───────────────────────────────────────────────────────── */
-.campo {
-  width: 100%;
-  background: var(--color-panel2);
-  border: 1px solid var(--color-linea);
-  border-radius: 0.5rem;
-  padding: 0.625rem 0.75rem;
-  font-size: 1rem;                 /* 16px evita que iOS haga zoom al enfocar */
-  color: var(--color-fuerte);
-  outline: none;
-  transition: border-color .15s, box-shadow .15s;
+@layer components {
+  .campo {
+    width: 100%;
+    background: var(--color-panel2);
+    border: 1px solid var(--color-linea);
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 1rem;                 /* 16px evita que iOS haga zoom al enfocar */
+    color: var(--color-fuerte);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .campo:focus {
+    border-color: var(--color-marca);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-marca) 14%, transparent);
+  }
+  .campo::placeholder { color: color-mix(in srgb, var(--color-tenue) 70%, transparent); }
 }
-.campo:focus {
-  border-color: var(--color-marca);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-marca) 14%, transparent);
-}
-.campo::placeholder { color: color-mix(in srgb, var(--color-tenue) 70%, transparent); }
 
 /* La flecha va como imagen de fondo, así cualquier <select class="campo">
    la tiene sin necesidad de envolverlo en nada. El SVG lleva el color
    incrustado, de ahí que haya una versión por tema. */
-select.campo {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235d6779' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.625rem center;
-  padding-right: 2rem;
+@layer components {
+  select.campo {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235d6779' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.625rem center;
+    padding-right: 2rem;
+  }
 }
 :root[data-tema='oscuro'] select.campo {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a92a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 /* ── Botones ───────────────────────────────────────────────────────────── */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
-  border-radius: .5rem; padding: .5625rem .875rem;
-  font-size: .875rem; font-weight: 500;
-  white-space: nowrap; cursor: pointer;
-  transition: background-color .15s, color .15s, opacity .15s, filter .15s;
-}
-.btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn:focus-visible { outline: 2px solid var(--color-marca); outline-offset: 2px; }
+@layer components {
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    border-radius: .5rem; padding: .5625rem .875rem;
+    font-size: .875rem; font-weight: 500;
+    white-space: nowrap; cursor: pointer;
+    transition: background-color .15s, color .15s, opacity .15s, filter .15s;
+  }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn:focus-visible { outline: 2px solid var(--color-marca); outline-offset: 2px; }
 
-.btn-primario {
-  background: var(--color-marca);
-  color: var(--color-sobre-marca);
-  font-weight: 600;
-}
-.btn-primario:not(:disabled):hover { filter: brightness(1.08); }
+  .btn-primario {
+    background: var(--color-marca);
+    color: var(--color-sobre-marca);
+    font-weight: 600;
+  }
+  .btn-primario:not(:disabled):hover { filter: brightness(1.08); }
 
-.btn-suave {
-  background: var(--color-panel2);
-  border: 1px solid var(--color-linea);
-  color: var(--color-fuerte);
-}
-.btn-suave:not(:disabled):hover {
-  background: color-mix(in srgb, var(--color-panel2) 80%, var(--color-linea));
-}
+  .btn-suave {
+    background: var(--color-panel2);
+    border: 1px solid var(--color-linea);
+    color: var(--color-fuerte);
+  }
+  .btn-suave:not(:disabled):hover {
+    background: color-mix(in srgb, var(--color-panel2) 80%, var(--color-linea));
+  }
 
-.btn-peligro { background: var(--color-error); color: #fff; font-weight: 600; }
-.btn-peligro:not(:disabled):hover { filter: brightness(1.08); }
+  .btn-peligro { background: var(--color-error); color: #fff; font-weight: 600; }
+  .btn-peligro:not(:disabled):hover { filter: brightness(1.08); }
 
-/* Botón sin fondo: solo el icono. El fondo aparece al pasar por encima. */
-.btn-icono {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 2.25rem; height: 2.25rem;
-  border-radius: .5rem; padding: 0 .5rem;
-  color: var(--color-tenue);
-  background: transparent; border: 0; cursor: pointer;
-  transition: background-color .15s, color .15s;
-}
-.btn-icono:hover { background: var(--color-panel2); color: var(--color-fuerte); }
-.btn-icono:focus-visible { outline: 2px solid var(--color-marca); outline-offset: 2px; }
-.btn-icono:disabled { opacity: .4; cursor: not-allowed; }
-.btn-icono.activo { color: var(--color-marca); }
+  /* Botón sin fondo: solo el icono. El fondo aparece al pasar por encima. */
+  .btn-icono {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 2.25rem; height: 2.25rem;
+    border-radius: .5rem; padding: 0 .5rem;
+    color: var(--color-tenue);
+    background: transparent; border: 0; cursor: pointer;
+    transition: background-color .15s, color .15s;
+  }
+  .btn-icono:hover { background: var(--color-panel2); color: var(--color-fuerte); }
+  .btn-icono:focus-visible { outline: 2px solid var(--color-marca); outline-offset: 2px; }
+  .btn-icono:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-icono.activo { color: var(--color-marca); }
 
-/* Enlace de texto discreto. */
-.enlace {
-  display: inline-flex; align-items: center; gap: .25rem;
-  font-size: .875rem; font-weight: 500; color: var(--color-tenue);
-  transition: color .15s;
-}
-.enlace:hover { color: var(--color-marca); }
+  /* Enlace de texto discreto. */
+  .enlace {
+    display: inline-flex; align-items: center; gap: .25rem;
+    font-size: .875rem; font-weight: 500; color: var(--color-tenue);
+    transition: color .15s;
+  }
+  .enlace:hover { color: var(--color-marca); }
 
-.chip {
-  display: inline-flex; align-items: center; gap: .3125rem;
-  border-radius: 999px; padding: .1875rem .5rem;
-  font-size: .6875rem; font-weight: 500; white-space: nowrap;
+  .chip {
+    display: inline-flex; align-items: center; gap: .3125rem;
+    border-radius: 999px; padding: .1875rem .5rem;
+    font-size: .6875rem; font-weight: 500; white-space: nowrap;
+  }
 }
 
 /* ── Detalles ──────────────────────────────────────────────────────────── */

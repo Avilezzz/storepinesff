@@ -68,6 +68,7 @@ export const PRIVACIDAD: Seccion[] = [
         'Vercel: alojamiento del sitio web.',
         'Resend: envío de los correos de la tienda.',
         'Google: solo si eliges iniciar sesión con tu cuenta de Google.',
+        'Groq: procesa las preguntas que le escribes al asistente de la tienda. Solo recibe tu pregunta, tu nombre de pila y el saldo y las compras necesarios para responderte; nunca tu correo, tu teléfono ni tus códigos.',
       ],
       'Estos servicios tienen servidores fuera del Ecuador, principalmente en Estados Unidos, por lo que tus datos son objeto de una transferencia internacional. Los hemos elegido porque cuentan con cláusulas de protección de datos y medidas de seguridad reconocidas internacionalmente.',
     ],

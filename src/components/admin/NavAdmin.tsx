@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Landmark, KeyRound, Gem, AlertTriangle, Users, Inbox, TrendingUp, Megaphone } from 'lucide-react'
+import { LayoutDashboard, Landmark, KeyRound, Gem, AlertTriangle, Users, Inbox, TrendingUp, Megaphone, Images, Bot } from 'lucide-react'
 
 const SECCIONES = [
   { href: '/admin', txt: 'Resumen', Icono: LayoutDashboard },
@@ -14,6 +14,8 @@ const SECCIONES = [
   { href: '/admin/reclamos', txt: 'Reclamos', Icono: AlertTriangle },
   { href: '/admin/usuarios', txt: 'Clientes', Icono: Users },
   { href: '/admin/novedades', txt: 'Novedades', Icono: Megaphone },
+  { href: '/admin/avisos', txt: 'Avisos', Icono: Images },
+  { href: '/admin/asistente', txt: 'Asistente', Icono: Bot },
 ]
 
 /** En móvil las pestañas se deslizan en horizontal en vez de romper el diseño. */

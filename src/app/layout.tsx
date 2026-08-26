@@ -8,6 +8,8 @@ import { Geist } from 'next/font/google'
 import { Toaster } from 'sonner'
 import Navbar from '@/components/Navbar'
 import BarraMovil from '@/components/BarraMovil'
+import Avisos from '@/components/Avisos'
+import Asistente from '@/components/Asistente'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'], display: 'swap' })
@@ -105,6 +107,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </footer>
 
         <BarraMovil />
+
+        {/* Va en el layout raíz para que la tanda aparezca al entrar, tanto en
+            la tienda como dentro del panel. */}
+        <Avisos />
+
+        {/* La bolita de ayuda acompaña al cliente por toda la tienda. */}
+        <Asistente />
 
         <Toaster
           position="top-center"

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { supabaseServer } from '@/lib/supabase'
 import { soloFecha } from '@/lib/format'
 import {
-  instrucciones, responderBasico, type Contexto, type Entrada, type Modo,
+  accionesPara, instrucciones, responderBasico, type Contexto, type Entrada, type Modo,
 } from '@/lib/asistente'
 
 export const runtime = 'nodejs'
@@ -70,23 +70,31 @@ export async function POST(req: NextRequest) {
 
   if (espera === null && process.env.GROQ_API_KEY) {
     const flujo = await pedirAlModelo(pregunta, contexto, historial)
-    if (flujo) return respuestaEnVivo(flujo, sb, user.id)
+    // Con el modelo los botones se deducen de la pregunta: la respuesta aún no
+    // existe cuando hay que mandar las cabeceras.
+    if (flujo) return respuestaEnVivo(flujo, sb, user.id, accionesPara(pregunta))
   }
 
-  const { texto, resuelta } = responderBasico(pregunta, contexto)
-  await guardar(sb, user.id, texto, 'BASICO', !resuelta)
+  const { texto, resuelta, acciones } = responderBasico(pregunta, contexto)
+  await guardar(sb, user.id, texto, 'BASICO', !resuelta, acciones)
 
   return new NextResponse(texto, {
     headers: cabeceras('BASICO', pausadoHasta > Date.now()
       ? Math.ceil((pausadoHasta - Date.now()) / 60000)
-      : null),
+      : null, acciones),
   })
 }
 
-const cabeceras = (modo: Modo, minutos: number | null) => ({
+/**
+ * Las acciones viajan en la cabecera y no en el cuerpo porque el cuerpo es un
+ * flujo de texto: la cabecera sale antes de la primera palabra, así los botones
+ * ya están decididos cuando la respuesta empieza a escribirse.
+ */
+const cabeceras = (modo: Modo, minutos: number | null, acciones: string[]) => ({
   'Content-Type': 'text/plain; charset=utf-8',
   'Cache-Control': 'no-store',
   'X-Modo': modo,
+  'X-Acciones': acciones.join(','),
   ...(minutos !== null ? { 'X-Reintento-Min': String(minutos) } : {}),
 })
 
@@ -107,7 +115,7 @@ async function armarContexto(sb: Cliente, uid: string): Promise<Contexto> {
     sb.from('orders').select('created_at, order_items(products(nombre))')
       .order('created_at', { ascending: false }).limit(3),
     sb.from('topup_requests').select('id', { count: 'exact', head: true }).eq('estado', 'PENDIENTE'),
-    sb.from('assistant_kb').select('pregunta, respuesta, claves').eq('activo', true).order('orden'),
+    sb.from('assistant_kb').select('pregunta, respuesta, claves, acciones').eq('activo', true).order('orden'),
     sb.from('app_settings').select('value').eq('key', 'contacto').single(),
   ])
 
@@ -213,7 +221,9 @@ async function pedirAlModelo(
  * terminar guarda la respuesta completa. El guardado va aquí y no antes porque
  * hasta que el flujo no acaba no existe la respuesta entera.
  */
-function respuestaEnVivo(flujo: ReadableStream<Uint8Array>, sb: Cliente, uid: string) {
+function respuestaEnVivo(
+  flujo: ReadableStream<Uint8Array>, sb: Cliente, uid: string, acciones: string[],
+) {
   const lector = flujo.getReader()
   const dec = new TextDecoder()
   const enc = new TextEncoder()
@@ -226,7 +236,7 @@ function respuestaEnVivo(flujo: ReadableStream<Uint8Array>, sb: Cliente, uid: st
 
       if (done) {
         const texto = completo.trim()
-        if (texto) await guardar(sb, uid, texto, 'IA', false)
+        if (texto) await guardar(sb, uid, texto, 'IA', false, acciones)
         else control.enqueue(enc.encode('No pude responder esta vez. Vuelve a intentarlo en un momento.'))
         control.close()
         return
@@ -256,11 +266,13 @@ function respuestaEnVivo(flujo: ReadableStream<Uint8Array>, sb: Cliente, uid: st
     cancel() { void lector.cancel() },
   })
 
-  return new NextResponse(salida, { headers: cabeceras('IA', null) })
+  return new NextResponse(salida, { headers: cabeceras('IA', null, acciones) })
 }
 
-async function guardar(sb: Cliente, uid: string, texto: string, modo: Modo, sinResolver: boolean) {
+async function guardar(
+  sb: Cliente, uid: string, texto: string, modo: Modo, sinResolver: boolean, acciones: string[],
+) {
   await sb.from('assistant_messages').insert({
-    user_id: uid, rol: 'ASISTENTE', texto, modo, sin_resolver: sinResolver,
+    user_id: uid, rol: 'ASISTENTE', texto, modo, sin_resolver: sinResolver, acciones,
   })
 }

@@ -18,6 +18,73 @@ export type Entrada = {
   pregunta: string
   respuesta: string
   claves: string[]
+  acciones?: string[]
+}
+
+/* ───────────────────────── Acciones ───────────────────────── */
+
+export type Accion = {
+  id: string
+  txt: string
+  /** Ruta interna, o vacío si el destino se arma en el cliente (WhatsApp). */
+  href: string
+  icono: 'wallet' | 'gem' | 'cart' | 'receipt' | 'user' | 'chat' | 'alert'
+}
+
+/**
+ * Los botones que pueden acompañar a una respuesta. Es una lista cerrada a
+ * propósito: el modelo no inventa destinos, solo se le enseñan al cliente
+ * caminos que existen de verdad en la tienda.
+ */
+export const ACCIONES: Accion[] = [
+  { id: 'recargar',  txt: 'Recargar saldo',   href: '/recargar',    icono: 'wallet' },
+  { id: 'billetera', txt: 'Mi billetera',     href: '/billetera',   icono: 'wallet' },
+  { id: 'catalogo',  txt: 'Ver paquetes',     href: '/#catalogo',   icono: 'gem' },
+  { id: 'carrito',   txt: 'Mi carrito',       href: '/carrito',     icono: 'cart' },
+  { id: 'compras',   txt: 'Mis compras',      href: '/mis-compras', icono: 'receipt' },
+  { id: 'reclamo',   txt: 'Reportar un pin',  href: '/mis-compras', icono: 'alert' },
+  { id: 'cuenta',    txt: 'Mi cuenta',        href: '/cuenta',      icono: 'user' },
+  { id: 'whatsapp',  txt: 'Hablar por WhatsApp', href: '',          icono: 'chat' },
+]
+
+const IDS = new Set(ACCIONES.map((a) => a.id))
+
+/** Máximo de botones por respuesta: más que esto y tapan la conversación. */
+const TOPE = 3
+
+const REGLAS: { re: RegExp; ids: string[] }[] = [
+  { re: /(recarg|deposit|transferenc|abonar|comprobante|acredit)/, ids: ['recargar', 'billetera'] },
+  { re: /(no funciona|no sirve|no anda|reclam|fall|estaf|no me llego|problema)/, ids: ['reclamo', 'whatsapp'] },
+  { re: /(canje|canjear|redimir|codigo|mis compras|pedido|entrega)/, ids: ['compras'] },
+  { re: /(saldo|billetera|cuanto tengo|dinero)/, ids: ['billetera', 'recargar'] },
+  { re: /(precio|cuesta|vale|catalogo|paquete|diamante|compr|stock|disponible|agotad)/, ids: ['catalogo', 'carrito'] },
+  { re: /(persona|humano|asesor|whatsapp|contact|hablar|alguien)/, ids: ['whatsapp'] },
+  { re: /(mi cuenta|perfil|telefono|correo|contrasen)/, ids: ['cuenta'] },
+]
+
+/**
+ * Qué botones acompañan a una respuesta.
+ *
+ * Se decide en el servidor y a partir de lo que preguntó el cliente, no de lo
+ * que contestó el modelo: así los mismos botones salen en los dos modos y no
+ * dependen de que un modelo abierto respete ningún formato especial.
+ *
+ * Lo que el admin haya fijado en la base de respuestas manda sobre todo esto.
+ */
+export function accionesPara(consulta: string, fijadas?: string[]): string[] {
+  const propias = (fijadas ?? []).filter((id) => IDS.has(id))
+  if (propias.length) return propias.slice(0, TOPE)
+
+  const t = normalizar(consulta)
+  const elegidas: string[] = []
+
+  for (const { re, ids } of REGLAS) {
+    if (!re.test(t)) continue
+    for (const id of ids) if (!elegidas.includes(id)) elegidas.push(id)
+    if (elegidas.length >= TOPE) break
+  }
+
+  return elegidas.slice(0, TOPE)
 }
 
 /** Todo lo que el asistente puede saber. Se arma en el servidor, por petición. */
@@ -170,12 +237,13 @@ function puntuar(consulta: string, e: Entrada): number {
  */
 export function responderBasico(
   consulta: string, c: Contexto,
-): { texto: string; resuelta: boolean } {
+): { texto: string; resuelta: boolean; acciones: string[] } {
   const t = normalizar(consulta)
 
   if (/^(hola|buenas|buenos dias|buenas tardes|buenas noches|hey|holi|que tal|saludos)\b/.test(t.trim())) {
     return {
       resuelta: true,
+      acciones: ['catalogo', 'billetera', 'compras'],
       texto: `¡Hola${c.nombre ? ` ${c.nombre}` : ''}! Puedo ayudarte con tu saldo, tus compras, cómo recargar o cómo canjear tu pin. ¿Qué necesitas?`,
     }
   }
@@ -192,6 +260,8 @@ export function responderBasico(
 
     return {
       resuelta: true,
+      // Con saldo, lo útil es ir a comprar; sin saldo, ir a recargar.
+      acciones: c.saldo_cents > 0 ? ['catalogo', 'billetera'] : ['recargar', 'billetera'],
       texto: c.saldo_cents > 0
         ? `Tienes ${s} de saldo.` + (alcanza
             ? ` Te alcanza para el paquete de ${alcanza.diamantes.toLocaleString('es-EC')} diamantes (${usd(alcanza.precio_cents)}).`
@@ -204,6 +274,7 @@ export function responderBasico(
     const ultima = c.compras[0]
     return {
       resuelta: true,
+      acciones: ultima ? ['compras'] : ['catalogo'],
       texto: ultima
         ? `Tu última compra fue ${ultima.producto} el ${ultima.fecha}. El código está en Mis compras, dentro del detalle del pedido.`
         : 'Todavía no tienes compras. Cuando compres un pin, el código aparece al instante en Mis compras.',
@@ -213,6 +284,7 @@ export function responderBasico(
   if (/\b(pendiente|aprobaron|aprobada|mi recarga|mi deposito|mi transferencia)\b/.test(t)) {
     return {
       resuelta: true,
+      acciones: c.recargas_pendientes > 0 ? ['billetera', 'whatsapp'] : ['recargar'],
       texto: c.recargas_pendientes > 0
         ? `Tienes ${c.recargas_pendientes} recarga${c.recargas_pendientes === 1 ? '' : 's'} esperando revisión. En cuanto la aprobemos verás el saldo actualizado y te llega un correo.`
         : 'No tienes recargas pendientes ahora mismo. Si acabas de transferir, sube el comprobante desde Recargar.',
@@ -224,6 +296,7 @@ export function responderBasico(
     if (hay.length) {
       return {
         resuelta: true,
+        acciones: ['catalogo', 'carrito'],
         texto: 'Estos son los paquetes disponibles: ' +
           hay.map((p) => `${p.diamantes.toLocaleString('es-EC')} diamantes por ${usd(p.precio_cents)}`).join(', ') +
           '. Los ves todos en el catálogo de la página principal.',
@@ -235,10 +308,18 @@ export function responderBasico(
     .map((e) => ({ e, puntos: puntuar(consulta, e) }))
     .sort((a, b) => b.puntos - a.puntos)[0]
 
-  if (mejor && mejor.puntos >= 3) return { texto: mejor.e.respuesta, resuelta: true }
+  if (mejor && mejor.puntos >= 3) {
+    return {
+      texto: mejor.e.respuesta,
+      resuelta: true,
+      // Los que fijó el admin en esa respuesta; si no puso ninguno, se deducen.
+      acciones: accionesPara(consulta, mejor.e.acciones),
+    }
+  }
 
   return {
     resuelta: false,
+    acciones: ['whatsapp'],
     texto: `Esa no me la sé todavía. Escríbenos por WhatsApp al ${c.whatsapp} y te responde una persona; tu pregunta ya quedó anotada para el equipo.`,
   }
 }

@@ -13,7 +13,7 @@ export default async function Asistente() {
   const sb = await supabaseServer()
 
   const [kb, pendientes, metricas] = await Promise.all([
-    sb.from('assistant_kb').select('id, pregunta, respuesta, claves, activo, orden').order('orden'),
+    sb.from('assistant_kb').select('id, pregunta, respuesta, claves, acciones, activo, orden').order('orden'),
     sb.rpc('fn_admin_asistente_pendientes', { p_limite: 40 }),
     sb.rpc('fn_admin_asistente_metricas'),
   ])

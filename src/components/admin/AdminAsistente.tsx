@@ -8,6 +8,7 @@ import {
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { fecha, mensajeError } from '@/lib/format'
+import { ACCIONES } from '@/lib/asistente'
 import Dialogo from '../ui/Dialogo'
 
 export type Kb = {
@@ -15,6 +16,7 @@ export type Kb = {
   pregunta: string
   respuesta: string
   claves: string[]
+  acciones: string[]
   activo: boolean
   orden: number
 }
@@ -148,8 +150,18 @@ export default function AdminAsistente({
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-fuerte">{e.pregunta}</p>
                 <p className="mt-1 text-sm leading-relaxed text-tenue">{e.respuesta}</p>
-                {e.claves.length > 0 && (
+                {e.acciones.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
+                    {e.acciones.map((id) => (
+                      <span key={id} className="chip bg-marca/10 text-[10px] font-medium text-marca">
+                        {ACCIONES.find((a) => a.id === id)?.txt ?? id}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {e.claves.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
                     {e.claves.map((c) => (
                       <span key={c} className="chip bg-panel2 text-[10px] text-tenue">{c}</span>
                     ))}
@@ -221,6 +233,7 @@ function FormKb({
     claves: (entrada?.claves ?? []).join(', '),
     orden: String(entrada?.orden ?? 0),
   })
+  const [acciones, setAcciones] = useState<string[]>(entrada?.acciones ?? [])
   const [guardando, setGuardando] = useState(false)
 
   async function guardar() {
@@ -234,6 +247,7 @@ function FormKb({
       pregunta: p,
       respuesta: r,
       claves: f.claves.split(',').map((c) => c.trim().toLowerCase()).filter(Boolean),
+      acciones,
       orden: parseInt(f.orden, 10) || 0,
     }
 
@@ -282,6 +296,34 @@ function FormKb({
           <input className="campo" inputMode="numeric"
             value={f.orden} onChange={(e) => setF({ ...f, orden: e.target.value })} />
         </label>
+      </div>
+
+      <div>
+        <span className="mb-1.5 block text-xs font-medium text-tenue">
+          Botones bajo la respuesta (hasta 3)
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {ACCIONES.map((a) => {
+            const puesto = acciones.includes(a.id)
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => setAcciones((v) =>
+                  puesto ? v.filter((x) => x !== a.id) : v.length >= 3 ? v : [...v, a.id])}
+                disabled={!puesto && acciones.length >= 3}
+                className={`chip border transition ${puesto
+                  ? 'border-marca bg-marca/10 text-marca'
+                  : 'border-linea bg-panel2 text-tenue hover:text-fuerte disabled:opacity-40'}`}
+              >
+                {a.txt}
+              </button>
+            )
+          })}
+        </div>
+        <p className="mt-1 text-[11px] text-tenue">
+          Si no eliges ninguno, el asistente los deduce de lo que preguntó el cliente.
+        </p>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">

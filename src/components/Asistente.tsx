@@ -3,13 +3,22 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { AnimatePresence, motion } from 'motion/react'
-import { X, ArrowUp, Zap } from 'lucide-react'
+import Link from 'next/link'
+import {
+  X, ArrowUp, Zap, Wallet, Gem, ShoppingCart, ReceiptText, User, MessageCircle,
+  TriangleAlert, ChevronRight,
+} from 'lucide-react'
 import Mascota, { type Gesto } from './ui/Mascota'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { useSesion } from '@/lib/sesion'
-import { avisoBasico, type Modo } from '@/lib/asistente'
+import { ACCIONES, avisoBasico, type Modo } from '@/lib/asistente'
 
-type Burbuja = { id: string; mio: boolean; texto: string; modo?: Modo }
+type Burbuja = { id: string; mio: boolean; texto: string; modo?: Modo; acciones?: string[] }
+
+const ICONOS = {
+  wallet: Wallet, gem: Gem, cart: ShoppingCart, receipt: ReceiptText,
+  user: User, chat: MessageCircle, alert: TriangleAlert,
+} as const
 
 /** Arranques para quien no sabe qué preguntar. No son respuestas: son atajos. */
 const SUGERENCIAS = ['¿Cómo recargo saldo?', '¿Cuál es mi saldo?', '¿Cómo canjeo mi pin?']
@@ -33,6 +42,7 @@ export default function Asistente() {
   const [enviando, setEnviando] = useState(false)
   const [degradado, setDegradado] = useState<number | null | false>(false)
   const [gesto, setGesto] = useState<Gesto>('reposo')
+  const [whatsapp, setWhatsapp] = useState('')
 
   const fondo = useRef<HTMLDivElement>(null)
   const campo = useRef<HTMLTextAreaElement>(null)
@@ -43,15 +53,28 @@ export default function Asistente() {
     if (!abierto || !uid || mensajes.length) return
     void (async () => {
       const { data } = await sb.from('assistant_messages')
-        .select('id, rol, texto, modo').eq('user_id', uid)
+        .select('id, rol, texto, modo, acciones').eq('user_id', uid)
         .order('created_at', { ascending: false }).limit(30)
 
-      const filas = (data as { id: number; rol: string; texto: string; modo: Modo | null }[] | null) ?? []
+      type Fila = { id: number; rol: string; texto: string; modo: Modo | null; acciones: string[] }
+      const filas = (data as Fila[] | null) ?? []
       setMensajes(filas.reverse().map((m) => ({
-        id: String(m.id), mio: m.rol === 'CLIENTE', texto: m.texto, modo: m.modo ?? undefined,
+        id: String(m.id), mio: m.rol === 'CLIENTE', texto: m.texto,
+        modo: m.modo ?? undefined, acciones: m.acciones ?? [],
       })))
     })()
   }, [abierto, uid, sb, mensajes.length])
+
+  // El botón de WhatsApp necesita el número de la tienda, que el admin puede
+  // cambiar: se lee de la configuración en vez de quemarlo en el código.
+  useEffect(() => {
+    if (!abierto || whatsapp) return
+    void (async () => {
+      const { data } = await sb.from('app_settings').select('value').eq('key', 'contacto').single()
+      const n = (data as { value: { whatsapp?: string } } | null)?.value?.whatsapp
+      if (n) setWhatsapp(n)
+    })()
+  }, [abierto, whatsapp, sb])
 
   useEffect(() => {
     if (abierto) fondo.current?.scrollTo({ top: fondo.current.scrollHeight })
@@ -97,12 +120,13 @@ export default function Asistente() {
 
       const modo = (r.headers.get('X-Modo') as Modo) ?? 'IA'
       const min = r.headers.get('X-Reintento-Min')
+      const acciones = (r.headers.get('X-Acciones') ?? '').split(',').filter(Boolean)
       setDegradado(modo === 'BASICO' ? (min ? Number(min) : null) : false)
 
       // La respuesta se pinta según llega: con el modelo se ve escribiéndose,
       // y con el modo básico llega de golpe porque ya está escrita.
       const id = `r${marca}`
-      setMensajes((m) => [...m, { id, mio: false, texto: '', modo }])
+      setMensajes((m) => [...m, { id, mio: false, texto: '', modo, acciones }])
 
       const lector = r.body.getReader()
       const dec = new TextDecoder()
@@ -216,14 +240,21 @@ export default function Asistente() {
                 </div>
               )}
 
-              {mensajes.map((m) => (
-                <div key={m.id} className={`flex ${m.mio ? 'justify-end' : 'justify-start'}`}>
+              {mensajes.map((m, i) => (
+                <div key={m.id} className={`flex flex-col gap-1.5 ${m.mio ? 'items-end' : 'items-start'}`}>
                   <p className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
                     m.mio
                       ? 'rounded-br-md bg-marca text-sobre-marca'
                       : 'rounded-bl-md bg-panel2 text-fuerte'}`}>
                     {m.texto || <Puntos />}
                   </p>
+
+                  {/* Los atajos esperan a que la respuesta termine de escribirse:
+                      apareciendo bajo un texto a medias, saltan y distraen. */}
+                  {!m.mio && m.acciones && m.acciones.length > 0 &&
+                   !(enviando && i === mensajes.length - 1) && (
+                    <Atajos ids={m.acciones} whatsapp={whatsapp} onIr={() => setAbierto(false)} />
+                  )}
                 </div>
               ))}
             </div>
@@ -256,6 +287,52 @@ export default function Asistente() {
         )}
       </AnimatePresence>
     </>
+  )
+}
+
+/**
+ * Botonera bajo una respuesta, al estilo de los bots de mensajería: lleva al
+ * cliente al sitio del que se acaba de hablar sin hacerle buscar el menú.
+ *
+ * Los destinos salen de una lista cerrada del servidor, así que un botón nunca
+ * apunta a una ruta inventada.
+ */
+function Atajos({
+  ids, whatsapp, onIr,
+}: { ids: string[]; whatsapp: string; onIr: () => void }) {
+  const items = ids
+    .map((id) => ACCIONES.find((a) => a.id === id))
+    .filter((a): a is NonNullable<typeof a> => Boolean(a))
+    // El de WhatsApp solo tiene sentido si hay número configurado.
+    .filter((a) => a.id !== 'whatsapp' || whatsapp)
+
+  if (items.length === 0) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, delay: 0.1 }}
+      className="flex max-w-[85%] flex-wrap gap-1.5"
+    >
+      {items.map((a) => {
+        const Icono = ICONOS[a.icono]
+        const fuera = a.id === 'whatsapp'
+        const clases = 'inline-flex items-center gap-1.5 rounded-full border border-linea bg-panel px-3 py-1.5 text-xs font-medium text-fuerte transition hover:border-marca hover:text-marca'
+
+        return fuera ? (
+          <a key={a.id} href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer"
+            className={clases}>
+            <Icono size={13} className="text-marca" /> {a.txt}
+          </a>
+        ) : (
+          <Link key={a.id} href={a.href} onClick={onIr} className={clases}>
+            <Icono size={13} className="text-marca" /> {a.txt}
+            <ChevronRight size={12} className="text-tenue" />
+          </Link>
+        )
+      })}
+    </motion.div>
   )
 }
 

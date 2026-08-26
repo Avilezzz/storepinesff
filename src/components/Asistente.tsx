@@ -6,12 +6,13 @@ import { AnimatePresence, motion } from 'motion/react'
 import Link from 'next/link'
 import {
   X, ArrowUp, Zap, Wallet, Gem, ShoppingCart, ReceiptText, User, MessageCircle,
-  TriangleAlert, ChevronRight,
+  TriangleAlert, ChevronRight, Volume2, VolumeX, Clock,
 } from 'lucide-react'
 import Mascota, { type Gesto } from './ui/Mascota'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { useSesion } from '@/lib/sesion'
 import { ACCIONES, avisoBasico, type Modo } from '@/lib/asistente'
+import { abrir as sonarAbrir, alternarSonido, blip, envio, fin, sonidoActivo } from '@/lib/sonido'
 
 type Burbuja = { id: string; mio: boolean; texto: string; modo?: Modo; acciones?: string[] }
 
@@ -43,6 +44,11 @@ export default function Asistente() {
   const [degradado, setDegradado] = useState<number | null | false>(false)
   const [gesto, setGesto] = useState<Gesto>('reposo')
   const [whatsapp, setWhatsapp] = useState('')
+  const [suena, setSuena] = useState(true)
+
+  // El valor real vive en localStorage y no se puede leer en el servidor: el
+  // primer render usa el de por defecto y se corrige al hidratar.
+  useEffect(() => { setSuena(sonidoActivo()) }, [])
 
   const fondo = useRef<HTMLDivElement>(null)
   const campo = useRef<HTMLTextAreaElement>(null)
@@ -85,6 +91,7 @@ export default function Asistente() {
   useEffect(() => {
     if (!abierto) return
     setGesto('saludo')
+    sonarAbrir()
     const t = setTimeout(() => setGesto('reposo'), 2800)
     return () => clearTimeout(t)
   }, [abierto])
@@ -103,6 +110,7 @@ export default function Asistente() {
     const marca = Date.now()
     setTexto('')
     setEnviando(true)
+    envio()
     setMensajes((m) => [...m, { id: `y${marca}`, mio: true, texto: limpia }])
 
     try {
@@ -134,6 +142,7 @@ export default function Asistente() {
         const { done, value } = await lector.read()
         if (done) break
         const trozo = dec.decode(value, { stream: true })
+        blip()
         setMensajes((m) => m.map((b) => (b.id === id ? { ...b, texto: b.texto + trozo } : b)))
       }
     } catch {
@@ -143,6 +152,7 @@ export default function Asistente() {
       }])
     } finally {
       setEnviando(false)
+      fin()
       // Un guiño al acabar: se nota que terminó de escribir sin leer nada.
       setGesto('listo')
       setTimeout(() => setGesto('reposo'), 2500)
@@ -210,12 +220,28 @@ export default function Asistente() {
                     : 'Te responde sobre tu cuenta y la tienda'}
                 </p>
               </div>
+              <button
+                onClick={() => setSuena(alternarSonido())}
+                aria-label={suena ? 'Silenciar el asistente' : 'Activar el sonido'}
+                title={suena ? 'Silenciar' : 'Activar sonido'}
+                className="btn-icono"
+              >
+                {suena ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              </button>
               <button onClick={() => setAbierto(false)} aria-label="Cerrar" className="btn-icono">
                 <X size={17} />
               </button>
             </header>
 
             <div ref={fondo} className="flex-1 space-y-2.5 overflow-y-auto px-4 py-4">
+              {/* Igual que en las apps de mensajería: se avisa de que esto no
+                  se guarda para siempre, en vez de borrarlo a escondidas. */}
+              {mensajes.length > 0 && (
+                <p className="flex items-center justify-center gap-1.5 pb-1 text-[11px] text-tenue">
+                  <Clock size={11} /> Esta conversación se borra sola a las 24 horas
+                </p>
+              )}
+
               {mensajes.length === 0 && (
                 <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
                   <motion.span
@@ -241,7 +267,13 @@ export default function Asistente() {
               )}
 
               {mensajes.map((m, i) => (
-                <div key={m.id} className={`flex flex-col gap-1.5 ${m.mio ? 'items-end' : 'items-start'}`}>
+                <motion.div
+                  key={m.id}
+                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className={`flex flex-col gap-1.5 ${m.mio ? 'items-end' : 'items-start'}`}
+                >
                   <p className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
                     m.mio
                       ? 'rounded-br-md bg-marca text-sobre-marca'
@@ -255,7 +287,7 @@ export default function Asistente() {
                    !(enviando && i === mensajes.length - 1) && (
                     <Atajos ids={m.acciones} whatsapp={whatsapp} onIr={() => setAbierto(false)} />
                   )}
-                </div>
+                </motion.div>
               ))}
             </div>
 

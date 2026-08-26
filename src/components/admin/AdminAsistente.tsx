@@ -90,13 +90,15 @@ export default function AdminAsistente({
       <p className="mb-4 text-sm text-tenue">
         Estas respuestas son la fuente del asistente: se las pasamos al modelo y son
         también lo que contesta el modo básico cuando el modelo no está disponible.
+        Las conversaciones se borran solas a las 24 horas —salvo las que quedaron
+        sin responder, que esperan aquí— así que estos números son del día.
       </p>
 
       <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Kpi Icono={MessageSquare} etiqueta="Preguntas hoy" valor={String(metricas.hoy)} />
         <Kpi Icono={Sparkles} etiqueta="Con el modelo" valor={String(metricas.con_ia)} />
         <Kpi Icono={Zap} etiqueta="Modo básico" valor={String(metricas.con_basico)} />
-        <Kpi Icono={Users} etiqueta="Clientes atendidos" valor={String(metricas.clientes)} />
+        <Kpi Icono={Users} etiqueta="Clientes (24 h)" valor={String(metricas.clientes)} />
       </div>
 
       {form && (

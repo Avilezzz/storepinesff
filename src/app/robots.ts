@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
       // Zonas privadas o sin valor de búsqueda. Bloquearlas evita que el
       // rastreador gaste tiempo en páginas que siempre le devolverán un login.
       disallow: ['/admin', '/billetera', '/carrito', '/mis-compras', '/cuenta',
-                 '/recargar', '/completar-perfil', '/baja', '/auth'],
+                 '/recargar', '/completar-perfil', '/baja', '/auth', '/recuperar'],
     },
     sitemap: `${SITIO}/sitemap.xml`,
     host: SITIO,

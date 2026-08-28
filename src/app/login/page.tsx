@@ -69,7 +69,12 @@ function Formulario() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-tenue">Contraseña</label>
+            <div className="mb-1.5 flex items-baseline justify-between gap-3">
+              <label className="block text-xs font-medium text-tenue">Contraseña</label>
+              <Link href="/recuperar" className="text-xs font-medium text-marca">
+                ¿La olvidaste?
+              </Link>
+            </div>
             <div className="relative">
               <input type={ver ? 'text' : 'password'} required autoComplete="current-password"
                 className="campo pr-11" value={pass} onChange={(e) => setPass(e.target.value)}

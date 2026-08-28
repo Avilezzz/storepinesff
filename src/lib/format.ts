@@ -78,6 +78,8 @@ export function mensajeError(raw: string | undefined): string {
   if (m.includes('TOPUP_REF_UQ'))       return 'Ese número de comprobante ya fue registrado.'
   if (m.includes('ROW-LEVEL SECURITY') || m.includes('ROW LEVEL SECURITY'))
     return 'Tienes 3 solicitudes de recarga pendientes. Espera a que se revisen.'
+  if (m.includes('TOKEN_INVALIDO'))     return 'El enlace ya venció o se usó. Pide uno nuevo.'
+  if (m.includes('PASSWORD_CORTA'))     return 'La contraseña debe tener al menos 8 caracteres.'
   if (m.includes('INVALID LOGIN'))      return 'Correo o contraseña incorrectos.'
   if (m.includes('USER ALREADY REGISTERED') || m.includes('ALREADY BEEN REGISTERED'))
     return 'Ese correo ya está registrado.'

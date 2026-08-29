@@ -23,11 +23,17 @@ export type Aviso = {
   termina_en: string | null
   orden: number
   created_at: string
+  /** Marco de degradado, rayos, confeti y destello. Sin él queda solo el arte. */
+  con_marco: boolean
+  /** Si se pinta el título bajo el arte. Guardado siempre está: es el alt. */
+  con_titulo: boolean
+  /** Si se pinta el botón. Sin él, y habiendo enlace, se toca la imagen. */
+  con_boton: boolean
 }
 
 /** Columnas del aviso. Se comparte para no desincronizar panel y tienda. */
 export const CAMPOS_AVISO =
-  'id, titulo, imagen_url, imagen_movil_url, href, externo, cta, audiencia, activo, inicia_en, termina_en, orden, created_at'
+  'id, titulo, imagen_url, imagen_movil_url, href, externo, cta, audiencia, activo, inicia_en, termina_en, orden, created_at, con_marco, con_titulo, con_boton'
 
 /** Lo que devuelve fn_admin_avisos_metricas para el panel. */
 export type MetricasAvisos = {

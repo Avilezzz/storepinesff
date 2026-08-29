@@ -155,6 +155,12 @@ export default function AdminAvisos({
                       <Smartphone size={11} /> móvil
                     </span>
                   )}
+                  {!a.con_marco && (
+                    <span className="chip bg-panel2 text-tenue"
+                      title="Sin marco ni efectos: se muestra solo el arte">
+                      limpio
+                    </span>
+                  )}
                 </div>
 
                 {a.href && (
@@ -211,7 +217,7 @@ export default function AdminAvisos({
 
       {previa && (
         <div onClick={() => setPrevia(null)}
-          className="velo fixed inset-0 z-110 flex items-center justify-center p-4">
+          className="velo fixed inset-0 z-110 flex items-center justify-center overflow-hidden p-4">
           <AnimatePresence>
             <TarjetaAviso a={previa} i={0} total={1}
               onAbrir={() => setPrevia(null)} onCerrar={() => setPrevia(null)} />
@@ -265,6 +271,9 @@ function FormAviso({
     inicia: aInput(aviso?.inicia_en ?? null),
     termina: aInput(aviso?.termina_en ?? null),
     orden: String(aviso?.orden ?? 0),
+    con_marco: aviso?.con_marco ?? true,
+    con_titulo: aviso?.con_titulo ?? true,
+    con_boton: aviso?.con_boton ?? true,
   })
   const [arte, setArte] = useState<File | null>(null)
   const [arteMovil, setArteMovil] = useState<File | null>(null)
@@ -308,6 +317,9 @@ function FormAviso({
       inicia_en: aISO(f.inicia),
       termina_en: aISO(f.termina),
       orden: parseInt(f.orden, 10) || 0,
+      con_marco: f.con_marco,
+      con_titulo: f.con_titulo,
+      con_boton: f.con_boton,
     }
 
     const { error } = await sb.from('notices').upsert(fila)
@@ -356,7 +368,7 @@ function FormAviso({
 
         <label className="block">
           <span className="mb-1.5 block text-xs font-medium text-tenue">Texto del botón</span>
-          <input className="campo" placeholder="Ver más"
+          <input className="campo" placeholder="Ver más" disabled={!f.con_boton}
             value={f.cta} onChange={(e) => setF({ ...f, cta: e.target.value })} />
         </label>
 
@@ -393,6 +405,29 @@ function FormAviso({
             checked={f.activo} onChange={(e) => setF({ ...f, activo: e.target.checked })} />
           Publicado
         </label>
+
+        {/* Un banner ya diseñado trae su propio título y su propio botón
+            dibujados dentro. Apagando las tres cosas queda solo el arte, que se
+            toca entero si lleva enlace. */}
+        <div className="rounded-xl bg-panel2 p-3.5 sm:col-span-2">
+          <p className="etiqueta mb-1">Cómo se muestra</p>
+          <p className="mb-3 text-[11px] leading-relaxed text-tenue">
+            Apágalo todo si tu imagen ya lo trae dibujado: el aviso queda solo con el arte
+            y se toca entero para abrir el enlace.
+          </p>
+
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            <Interruptor
+              marcado={f.con_marco} onCambio={(v) => setF({ ...f, con_marco: v })}
+              txt="Marco animado" ayuda="Borde, rayos, confeti y destello" />
+            <Interruptor
+              marcado={f.con_titulo} onCambio={(v) => setF({ ...f, con_titulo: v })}
+              txt="Título debajo" ayuda="El título se guarda igual, no se pinta" />
+            <Interruptor
+              marcado={f.con_boton} onCambio={(v) => setF({ ...f, con_boton: v })}
+              txt="Botón de acción" ayuda="Sin él, se toca la propia imagen" />
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -403,6 +438,22 @@ function FormAviso({
         </button>
       </div>
     </div>
+  )
+}
+
+function Interruptor({
+  marcado, onCambio, txt, ayuda,
+}: { marcado: boolean; onCambio: (v: boolean) => void; txt: string; ayuda: string }) {
+  return (
+    <label className={`flex cursor-pointer items-start gap-2.5 rounded-lg border p-2.5 transition
+      ${marcado ? 'border-marca bg-marca/10' : 'border-linea bg-panel'}`}>
+      <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--color-marca)]"
+        checked={marcado} onChange={(e) => onCambio(e.target.checked)} />
+      <span className="min-w-0">
+        <span className="block text-xs font-medium">{txt}</span>
+        <span className="mt-0.5 block text-[11px] leading-tight text-tenue">{ayuda}</span>
+      </span>
+    </label>
   )
 }
 

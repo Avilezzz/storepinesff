@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { X, ArrowRight, ExternalLink } from 'lucide-react'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { useSesion } from '@/lib/sesion'
+import { abrir as blipAviso } from '@/lib/sonido'
 import { CAMPOS_AVISO, esParaMi, saleDelSitio, type Aviso } from '@/lib/avisos'
 
 /** Páginas donde un aviso taparía justo lo que el usuario vino a hacer. */
@@ -61,8 +62,12 @@ export default function Avisos() {
   }, [sb, uid, cargando, ruta])
 
   const cerrar = useCallback(() => {
-    if (i + 1 < cola.length) setI(i + 1)
-    else { setCola([]); setI(0) }
+    if (i + 1 < cola.length) {
+      // Al pasar al siguiente sí suena: hubo un gesto y el navegador ya deja
+      // sonar. El primero de la tanda entra callado por la misma razón.
+      blipAviso()
+      setI(i + 1)
+    } else { setCola([]); setI(0) }
   }, [i, cola.length])
 
   // El aviso se le enseña al admin como a cualquiera, pero sus vistas y sus
@@ -108,13 +113,15 @@ export default function Avisos() {
 
   const total = cola.length
 
+  // El velo recorta: los rayos y el confeti se salen de la tarjeta a propósito,
+  // y sin `overflow-hidden` asomarían por el borde de la pantalla.
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={actual.titulo}
       onClick={cerrar}
-      className="velo fixed inset-0 z-110 flex items-center justify-center p-4"
+      className="velo fixed inset-0 z-110 flex items-center justify-center overflow-hidden p-4"
     >
       <AnimatePresence mode="wait">
         <TarjetaAviso
@@ -128,9 +135,32 @@ export default function Avisos() {
   )
 }
 
+/** Confeti de la entrada. Las piezas son fijas y no al azar: dos aperturas
+ *  seguidas deben caer igual, y un `Math.random()` en el render las recoloca
+ *  en cada repintado. */
+const CONFETI = Array.from({ length: 16 }, (_, i) => ({
+  izq:     4 + ((i * 37) % 92),
+  giro:    (i % 2 ? 1 : -1) * (200 + i * 26),
+  retraso: (i % 6) * 0.05,
+  caida:   230 + (i % 5) * 55,
+  ancho:   i % 3 === 0 ? 10 : 6,
+  color:   ['var(--color-marca)', 'var(--color-marca2)', '#ffd27d', '#ffffff'][i % 4],
+}))
+
 /**
  * El aviso tal como lo ve el cliente. Se exporta para que la previa del panel
  * enseñe exactamente esto y no una imitación que se desactualiza sola.
+ *
+ * Está tratado como el cofre que se abre en un juego, no como un cartel de
+ * página web: rayos girando detrás, confeti al aparecer, marco de degradado
+ * encendido y el botón latiendo con un brillo que lo recorre. Un aviso aparece
+ * sin que nadie lo pida y compite con lo que el cliente venía a hacer, así que
+ * o se gana el primer segundo o se cierra sin leer.
+ *
+ * Pero el adorno se apaga por partes desde el panel. Un banner ya diseñado
+ * trae dentro su título y su botón dibujados: encima de ese arte, el marco y
+ * el texto de la tienda solo estorban. Con todo apagado queda la imagen sola,
+ * que se toca entera para ir al enlace.
  */
 export function TarjetaAviso({
   a, i, total, onAbrir, onCerrar,
@@ -141,58 +171,166 @@ export function TarjetaAviso({
   onAbrir: () => void
   onCerrar: () => void
 }) {
+  const quieto = useReducedMotion()
+  const externo = saleDelSitio(a)
+
+  // El arte se toca cuando no hay botón que tocar. Es la única forma de que un
+  // aviso de solo imagen pueda llevar a algún sitio.
+  const arteClicable = !!a.href && !a.con_boton
+  const conPie = a.con_titulo || a.con_boton
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.94, y: 14 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.22, ease: 'easeOut' }}
+      initial={quieto ? { opacity: 0 } : { opacity: 0, scale: 0.7, y: 26 }}
+      animate={quieto ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+      exit={quieto ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: -10 }}
+      transition={quieto
+        ? { duration: 0.2 }
+        : { type: 'spring', stiffness: 320, damping: 21, mass: 0.9 }}
       onClick={(e) => e.stopPropagation()}
-      className="tarjeta w-full max-w-sm overflow-hidden border-marca/30 shadow-2xl sm:max-w-md"
+      className="relative w-full max-w-sm sm:max-w-md"
     >
-      {/* El arte manda. Va sobre fondo oscuro y sin recortar: un banner
-          publicitario suele traer texto en los bordes, y `cover` se lo comería
-          en cuanto la pantalla no tuviera la proporción exacta. */}
-      <div className="relative aspect-4/5 w-full bg-[#080a0e] sm:aspect-16/10">
-        <Image
-          src={(esMovil() && a.imagen_movil_url) || a.imagen_url}
-          alt={a.titulo}
-          fill
-          priority
-          sizes="(min-width: 640px) 448px, 92vw"
-          className="object-contain"
+      {/* Rayos de sol girando detrás de la tarjeta: el fondo de los cofres y las
+          tiradas de premio de toda la vida. Un gradiente cónico repetido sale
+          más barato que dieciséis triángulos, y la máscara redonda evita que se
+          vean los cortes en las esquinas. */}
+      {a.con_marco && !quieto && (
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[190%] w-[190%]
+            -translate-x-1/2 -translate-y-1/2 opacity-30"
+          style={{
+            background:
+              'repeating-conic-gradient(from 0deg, var(--color-marca) 0deg 5deg, transparent 5deg 17deg)',
+            maskImage: 'radial-gradient(circle, #000 8%, transparent 62%)',
+            WebkitMaskImage: 'radial-gradient(circle, #000 8%, transparent 62%)',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 28, ease: 'linear', repeat: Infinity }}
         />
+      )}
 
-        {total > 1 && (
-          <span className="chip absolute left-2 top-2 bg-black/55 font-medium text-white backdrop-blur-sm">
-            {i + 1} / {total}
-          </span>
-        )}
+      {/* El confeti cae por delante del marco, así que va fuera del recorte. */}
+      {a.con_marco && !quieto && CONFETI.map((c, n) => (
+        <motion.span
+          key={n}
+          aria-hidden
+          className="pointer-events-none absolute top-0 rounded-[1px]"
+          style={{ left: `${c.izq}%`, width: c.ancho, height: c.ancho * 1.6, background: c.color }}
+          initial={{ y: -30, opacity: 1, rotate: 0 }}
+          animate={{ y: c.caida, opacity: 0, rotate: c.giro }}
+          transition={{ duration: 1.5, delay: 0.1 + c.retraso, ease: 'easeIn' }}
+        />
+      ))}
 
-        <button
-          onClick={onCerrar}
-          aria-label="Cerrar aviso"
-          className="absolute right-2 top-2 rounded-lg bg-black/55 p-2 text-white backdrop-blur-sm transition hover:bg-black/75"
-        >
-          <X size={18} />
-        </button>
-      </div>
+      {/* Con marco: degradado de 2px y resplandor propio, para que la tarjeta
+          parezca encendida sobre el velo. Sin marco: la imagen y nada más. */}
+      <div
+        className={a.con_marco
+          ? 'rounded-3xl p-[2px] shadow-[0_0_70px_-16px_var(--color-marca),0_22px_50px_-20px_rgb(0_0_0/0.8)]'
+          : 'rounded-2xl shadow-[0_22px_50px_-20px_rgb(0_0_0/0.8)]'}
+        style={a.con_marco ? {
+          background:
+            'linear-gradient(140deg, var(--color-marca), var(--color-marca2) 55%, color-mix(in srgb, var(--color-marca) 35%, transparent))',
+        } : undefined}
+      >
+        <div className={`overflow-hidden bg-panel ${a.con_marco ? 'rounded-[1.35rem]' : 'rounded-2xl'}`}>
+          {/* El arte manda. Va sobre fondo oscuro y sin recortar: un banner
+              publicitario suele traer texto en los bordes, y `cover` se lo
+              comería en cuanto la pantalla no tuviera la proporción exacta. */}
+          <div
+            onClick={arteClicable ? onAbrir : undefined}
+            onKeyDown={arteClicable
+              ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAbrir() } }
+              : undefined}
+            role={arteClicable ? 'link' : undefined}
+            tabIndex={arteClicable ? 0 : undefined}
+            aria-label={arteClicable ? a.titulo : undefined}
+            className={`relative aspect-4/5 w-full bg-[#080a0e] sm:aspect-16/10
+              ${arteClicable ? 'cursor-pointer' : ''}`}
+          >
+            <Image
+              src={(esMovil() && a.imagen_movil_url) || a.imagen_url}
+              alt={a.titulo}
+              fill
+              priority
+              sizes="(min-width: 640px) 448px, 92vw"
+              className="object-contain"
+            />
 
-      <div className="flex flex-col gap-3 p-4">
-        <h2 className="subtitulo text-center">{a.titulo}</h2>
+            {/* Un destello recorre el arte una vez, como el brillo de una carta
+                al girarla. */}
+            {a.con_marco && !quieto && (
+              <motion.span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 w-1/3 -skew-x-12
+                  bg-gradient-to-r from-transparent via-white/25 to-transparent"
+                initial={{ x: '-160%' }}
+                animate={{ x: '460%' }}
+                transition={{ duration: 1.2, delay: 0.35, ease: 'easeInOut' }}
+              />
+            )}
 
-        {a.href ? (
-          <button onClick={onAbrir} className="btn btn-primario w-full py-2.5">
-            {a.cta || 'Ver más'}
-            {saleDelSitio(a) ? <ExternalLink size={15} /> : <ArrowRight size={15} />}
-          </button>
-        ) : (
-          <button onClick={onCerrar} className="btn btn-primario w-full py-2.5">Entendido</button>
-        )}
+            {total > 1 && (
+              <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2.5 py-1
+                text-[11px] font-bold tabular-nums text-white backdrop-blur-sm">
+                {i + 1} / {total}
+              </span>
+            )}
 
-        <button onClick={onCerrar} className="text-xs text-tenue transition hover:text-fuerte">
-          {i + 1 < total ? 'Siguiente' : 'Cerrar'}
-        </button>
+            <button
+              onClick={onCerrar}
+              aria-label="Cerrar aviso"
+              className="absolute right-2.5 top-2.5 rounded-full bg-black/60 p-2 text-white
+                backdrop-blur-sm transition hover:bg-black/80"
+            >
+              <X size={17} />
+            </button>
+          </div>
+
+          {/* Sin título y sin botón no hay pie que pintar: la tarjeta termina
+              en la imagen, y para cerrar o pasar al siguiente está la X. */}
+          {conPie && (
+            <div className="flex flex-col gap-3 px-4 pb-4 pt-4">
+              {a.con_titulo && <h2 className="titulo text-balance text-center">{a.titulo}</h2>}
+
+              {/* El botón late despacio y un brillo lo cruza cada pocos
+                  segundos: es lo que separa un enlace de una recompensa que hay
+                  que reclamar. El pulso vive en el envoltorio para no pelearse
+                  con el `hover` del propio botón. */}
+              {a.con_boton && (
+                <motion.div
+                  animate={quieto ? undefined : { scale: [1, 1.028, 1] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <button
+                    onClick={a.href ? onAbrir : onCerrar}
+                    className="btn btn-primario relative w-full overflow-hidden py-3 text-[0.95rem] font-semibold"
+                  >
+                    <span className="relative z-10 inline-flex items-center gap-1.5">
+                      {a.href ? (a.cta || 'Ver más') : 'Entendido'}
+                      {a.href && (externo ? <ExternalLink size={15} /> : <ArrowRight size={15} />)}
+                    </span>
+
+                    {!quieto && (
+                      <motion.span
+                        aria-hidden
+                        className="absolute inset-y-0 w-1/4 -skew-x-12 bg-white/35"
+                        initial={{ x: '-180%' }}
+                        animate={{ x: '520%' }}
+                        transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1.9, ease: 'easeInOut' }}
+                      />
+                    )}
+                  </button>
+                </motion.div>
+              )}
+
+              <button onClick={onCerrar} className="text-xs text-tenue transition hover:text-fuerte">
+                {i + 1 < total ? 'Siguiente' : 'Cerrar'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </motion.div>
   )

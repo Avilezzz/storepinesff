@@ -8,6 +8,7 @@ import { X, ArrowRight, ExternalLink } from 'lucide-react'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { useSesion } from '@/lib/sesion'
 import { abrir as blipAviso } from '@/lib/sonido'
+import { textoSobre } from '@/lib/paleta'
 import { CAMPOS_AVISO, esParaMi, saleDelSitio, type Aviso } from '@/lib/avisos'
 
 /** Páginas donde un aviso taparía justo lo que el usuario vino a hacer. */
@@ -137,14 +138,14 @@ export default function Avisos() {
 
 /** Confeti de la entrada. Las piezas son fijas y no al azar: dos aperturas
  *  seguidas deben caer igual, y un `Math.random()` en el render las recoloca
- *  en cada repintado. */
+ *  en cada repintado. El color se resuelve al pintar, porque sale del arte. */
 const CONFETI = Array.from({ length: 16 }, (_, i) => ({
   izq:     4 + ((i * 37) % 92),
   giro:    (i % 2 ? 1 : -1) * (200 + i * 26),
   retraso: (i % 6) * 0.05,
   caida:   230 + (i % 5) * 55,
   ancho:   i % 3 === 0 ? 10 : 6,
-  color:   ['var(--color-marca)', 'var(--color-marca2)', '#ffd27d', '#ffffff'][i % 4],
+  tinta:   i % 4,
 }))
 
 /**
@@ -179,6 +180,12 @@ export function TarjetaAviso({
   const arteClicable = !!a.href && !a.con_boton
   const conPie = a.con_titulo || a.con_boton
 
+  // Los colores salen de la propia imagen, calculados al subirla. Si el arte no
+  // tenía color que sacar —blanco y negro— manda la marca de la tienda.
+  const A = a.color_a ?? 'var(--color-marca)'
+  const B = a.color_b ?? 'var(--color-marca2)'
+  const TINTAS = [A, B, '#ffd27d', '#ffffff']
+
   return (
     <motion.div
       initial={quieto ? { opacity: 0 } : { opacity: 0, scale: 0.7, y: 26 }}
@@ -201,7 +208,7 @@ export function TarjetaAviso({
             -translate-x-1/2 -translate-y-1/2 opacity-30"
           style={{
             background:
-              'repeating-conic-gradient(from 0deg, var(--color-marca) 0deg 5deg, transparent 5deg 17deg)',
+              `repeating-conic-gradient(from 0deg, ${A} 0deg 5deg, transparent 5deg 17deg)`,
             maskImage: 'radial-gradient(circle, #000 8%, transparent 62%)',
             WebkitMaskImage: 'radial-gradient(circle, #000 8%, transparent 62%)',
           }}
@@ -216,7 +223,7 @@ export function TarjetaAviso({
           key={n}
           aria-hidden
           className="pointer-events-none absolute top-0 rounded-[1px]"
-          style={{ left: `${c.izq}%`, width: c.ancho, height: c.ancho * 1.6, background: c.color }}
+          style={{ left: `${c.izq}%`, width: c.ancho, height: c.ancho * 1.6, background: TINTAS[c.tinta] }}
           initial={{ y: -30, opacity: 1, rotate: 0 }}
           animate={{ y: c.caida, opacity: 0, rotate: c.giro }}
           transition={{ duration: 1.5, delay: 0.1 + c.retraso, ease: 'easeIn' }}
@@ -226,13 +233,11 @@ export function TarjetaAviso({
       {/* Con marco: degradado de 2px y resplandor propio, para que la tarjeta
           parezca encendida sobre el velo. Sin marco: la imagen y nada más. */}
       <div
-        className={a.con_marco
-          ? 'rounded-3xl p-[2px] shadow-[0_0_70px_-16px_var(--color-marca),0_22px_50px_-20px_rgb(0_0_0/0.8)]'
-          : 'rounded-2xl shadow-[0_22px_50px_-20px_rgb(0_0_0/0.8)]'}
+        className={a.con_marco ? 'rounded-3xl p-[2px]' : 'rounded-2xl'}
         style={a.con_marco ? {
-          background:
-            'linear-gradient(140deg, var(--color-marca), var(--color-marca2) 55%, color-mix(in srgb, var(--color-marca) 35%, transparent))',
-        } : undefined}
+          background: `linear-gradient(140deg, ${A}, ${B} 55%, color-mix(in srgb, ${A} 35%, transparent))`,
+          boxShadow: `0 0 70px -16px ${A}, 0 22px 50px -20px rgb(0 0 0 / 0.8)`,
+        } : { boxShadow: '0 22px 50px -20px rgb(0 0 0 / 0.8)' }}
       >
         <div className={`overflow-hidden bg-panel ${a.con_marco ? 'rounded-[1.35rem]' : 'rounded-2xl'}`}>
           {/* El arte manda. Va sobre fondo oscuro y sin recortar: un banner
@@ -306,6 +311,15 @@ export function TarjetaAviso({
                   <button
                     onClick={a.href ? onAbrir : onCerrar}
                     className="btn btn-primario relative w-full overflow-hidden py-3 text-[0.95rem] font-semibold"
+                    // El botón también se tiñe del arte. El color del texto no
+                    // se elige a ojo: se calcula cuál de los dos, blanco o
+                    // negro, contrasta más, porque sobre un amarillo sacado de
+                    // una imagen el blanco de siempre no se leería.
+                    style={a.color_a ? {
+                      background: `linear-gradient(120deg, ${a.color_a}, ${a.color_b ?? a.color_a})`,
+                      color: textoSobre(a.color_a),
+                      borderColor: 'transparent',
+                    } : undefined}
                   >
                     <span className="relative z-10 inline-flex items-center gap-1.5">
                       {a.href ? (a.cta || 'Ver más') : 'Entendido'}

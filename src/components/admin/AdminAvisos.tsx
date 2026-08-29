@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   Plus, X, Pencil, Trash2, Eye, EyeOff, ImagePlus, Loader2, MousePointerClick,
-  Megaphone, Play, Link2, Smartphone, Monitor,
+  Megaphone, Play, Link2, Smartphone, Monitor, Pipette, RotateCcw,
 } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { toast } from 'sonner'
@@ -14,6 +14,7 @@ import { fecha, mensajeError } from '@/lib/format'
 import {
   estadoAviso, type Aviso, type Audiencia, type EstadoAviso, type MetricasAvisos,
 } from '@/lib/avisos'
+import { paletaDeOrigen } from '@/lib/paleta'
 import { TarjetaAviso } from '@/components/Avisos'
 import Dialogo from '../ui/Dialogo'
 
@@ -274,10 +275,41 @@ function FormAviso({
     con_marco: aviso?.con_marco ?? true,
     con_titulo: aviso?.con_titulo ?? true,
     con_boton: aviso?.con_boton ?? true,
+    color_a: aviso?.color_a ?? '',
+    color_b: aviso?.color_b ?? '',
   })
   const [arte, setArte] = useState<File | null>(null)
   const [arteMovil, setArteMovil] = useState<File | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const [leyendo, setLeyendo] = useState(false)
+
+  /**
+   * Lee los colores del arte. Se dispara al elegir el archivo, antes de
+   * subirlo: en local no hay permisos de dominio de por medio y se puede mirar
+   * la imagen sin pedirle nada a nadie.
+   */
+  async function leerColores(origen: File | string) {
+    setLeyendo(true)
+    const p = await paletaDeOrigen(origen)
+    setLeyendo(false)
+    if (p) setF((v) => ({ ...v, color_a: p.a, color_b: p.b }))
+    return p
+  }
+
+  function elegirArte(file: File | null) {
+    setArte(file)
+    if (file) void leerColores(file)
+  }
+
+  // Un aviso de antes de que esto existiera no tiene colores guardados: se
+  // intentan sacar de su arte ya subido. Si el servidor no deja leer la imagen
+  // no pasa nada, se queda con los colores de la tienda.
+  useEffect(() => {
+    if (!aviso?.imagen_url || aviso.color_a) return
+    void leerColores(aviso.imagen_url)
+    // Depende solo del aviso abierto: reintentarlo en cada tecleo del
+    // formulario sería descargar y analizar la imagen una y otra vez.
+  }, [aviso?.id, aviso?.imagen_url, aviso?.color_a])
 
   async function guardar() {
     const titulo = f.titulo.trim()
@@ -320,6 +352,8 @@ function FormAviso({
       con_marco: f.con_marco,
       con_titulo: f.con_titulo,
       con_boton: f.con_boton,
+      color_a: f.color_a || null,
+      color_b: f.color_b || null,
     }
 
     const { error } = await sb.from('notices').upsert(fila)
@@ -354,7 +388,7 @@ function FormAviso({
         </label>
 
         <ElegirArte
-          etiqueta="Arte principal" Icono={Monitor} archivo={arte} onElegir={setArte}
+          etiqueta="Arte principal" Icono={Monitor} archivo={arte} onElegir={elegirArte}
           actual={aviso?.imagen_url ?? null}
           ayuda="Horizontal (16:10). Es el que se ve en computadora."
         />
@@ -427,6 +461,39 @@ function FormAviso({
               marcado={f.con_boton} onCambio={(v) => setF({ ...f, con_boton: v })}
               txt="Botón de acción" ayuda="Sin él, se toca la propia imagen" />
           </div>
+
+          {/* Los colores salen de la imagen sola, pero el último criterio es el
+              tuyo: si el arte engaña al análisis, se corrigen a mano. */}
+          <div className="mt-3.5 border-t border-linea pt-3.5">
+            <p className="etiqueta mb-1 flex items-center gap-1.5">
+              <Pipette size={12} /> Colores del arte
+              {leyendo && <Loader2 size={12} className="animate-spin" />}
+            </p>
+            <p className="mb-3 text-[11px] leading-relaxed text-tenue">
+              Se leen solos de la imagen al subirla y visten el borde, los rayos, el confeti
+              y el botón. Si no convencen, cámbialos aquí.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Muestra valor={f.color_a} onCambio={(v) => setF({ ...f, color_a: v })} txt="Principal" />
+              <Muestra valor={f.color_b} onCambio={(v) => setF({ ...f, color_b: v })} txt="Segundo" />
+
+              {(arte || aviso?.imagen_url) && (
+                <button type="button" disabled={leyendo}
+                  onClick={() => void leerColores(arte ?? aviso!.imagen_url)}
+                  className="btn btn-suave h-9 px-3 text-xs">
+                  <RotateCcw size={13} /> Volver a leer
+                </button>
+              )}
+
+              {(f.color_a || f.color_b) && (
+                <button type="button" onClick={() => setF({ ...f, color_a: '', color_b: '' })}
+                  className="text-xs text-tenue underline transition hover:text-fuerte">
+                  Usar los de la tienda
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -438,6 +505,28 @@ function FormAviso({
         </button>
       </div>
     </div>
+  )
+}
+
+/** Una muestra de color. El cuadrado es el propio selector nativo, que ya sabe
+ *  abrir la paleta del sistema; vacío significa "usa el color de la tienda". */
+function Muestra({
+  valor, onCambio, txt,
+}: { valor: string; onCambio: (v: string) => void; txt: string }) {
+  return (
+    <label className="flex items-center gap-2 rounded-lg border border-linea bg-panel px-2 py-1.5">
+      <input
+        type="color"
+        value={valor || '#c2410c'}
+        onChange={(e) => onCambio(e.target.value)}
+        className="size-7 cursor-pointer rounded border-0 bg-transparent p-0"
+        aria-label={`Color ${txt.toLowerCase()}`}
+      />
+      <span className="text-[11px] leading-tight">
+        <span className="block font-medium">{txt}</span>
+        <span className="block font-mono text-tenue">{valor || 'de la tienda'}</span>
+      </span>
+    </label>
   )
 }
 

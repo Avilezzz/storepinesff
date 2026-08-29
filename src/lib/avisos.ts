@@ -29,11 +29,15 @@ export type Aviso = {
   con_titulo: boolean
   /** Si se pinta el botón. Sin él, y habiendo enlace, se toca la imagen. */
   con_boton: boolean
+  /** Color dominante del arte. Nulo: se usan los de la tienda. */
+  color_a: string | null
+  /** Segundo color del arte, el que cierra el degradado. */
+  color_b: string | null
 }
 
 /** Columnas del aviso. Se comparte para no desincronizar panel y tienda. */
 export const CAMPOS_AVISO =
-  'id, titulo, imagen_url, imagen_movil_url, href, externo, cta, audiencia, activo, inicia_en, termina_en, orden, created_at, con_marco, con_titulo, con_boton'
+  'id, titulo, imagen_url, imagen_movil_url, href, externo, cta, audiencia, activo, inicia_en, termina_en, orden, created_at, con_marco, con_titulo, con_boton, color_a, color_b'
 
 /** Lo que devuelve fn_admin_avisos_metricas para el panel. */
 export type MetricasAvisos = {

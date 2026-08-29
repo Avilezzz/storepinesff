@@ -107,3 +107,36 @@ export function abrir() {
   nota(392, 55, 0.045)
   setTimeout(() => nota(587, 70, 0.04), 60)
 }
+
+/**
+ * La fanfarria de los avisos: el arpegio de "logro desbloqueado" de toda la
+ * vida. Cada tipo tiene su melodía para que se reconozca sin mirar la pantalla,
+ * y la mala noticia baja en vez de subir.
+ *
+ * Es la misma escala de volumen que el resto: un aviso no debe pegar un susto.
+ */
+const FANFARRIA: Record<string, { hz: number[]; paso: number; forma?: OscillatorType }> = {
+  compra: { hz: [523, 659, 784, 1047], paso: 70 },                    // do-mi-sol-do
+  premio: { hz: [784, 988, 1319],      paso: 60 },                    // monedas
+  stock:  { hz: [659, 880],            paso: 65 },
+  alerta: { hz: [392, 294],            paso: 110, forma: 'triangle' },
+}
+
+const VIBRA: Record<string, number[]> = {
+  compra: [14, 40, 14, 40, 22],
+  premio: [12, 35, 18],
+  stock:  [14, 45, 14],
+  alerta: [26, 60, 26],
+}
+
+export function fanfarria(tipo: string) {
+  try { navigator.vibrate?.(VIBRA[tipo] ?? [14]) } catch {}
+
+  if (!sonidoActivo()) return
+  const f = FANFARRIA[tipo] ?? FANFARRIA.stock
+  f.hz.forEach((hz, i) => {
+    // La última nota dura más: es la que cierra el acorde.
+    const largo = i === f.hz.length - 1 ? 190 : 80
+    setTimeout(() => nota(hz, largo, 0.055, f.forma), i * f.paso)
+  })
+}

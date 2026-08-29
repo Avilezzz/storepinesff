@@ -3,11 +3,26 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Bell, BellOff } from 'lucide-react'
-import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { fecha } from '@/lib/format'
+import { avisar, type TipoAviso } from '@/components/ui/AvisoJuego'
 
-type Notif = { id: number; titulo: string; cuerpo: string | null; url: string | null; leida: boolean; created_at: string }
+type Notif = {
+  id: number; tipo: string; titulo: string; cuerpo: string | null
+  url: string | null; leida: boolean; created_at: string
+}
+
+/**
+ * Con qué cara sale el aviso. El tipo lo pone la base, pero no distingue una
+ * recarga aprobada de una rechazada: eso se lee del título, que es donde la
+ * base ya escribe el signo ("Recarga rechazada", "Se ajustó tu saldo: -").
+ */
+function estiloDe(n: Notif): TipoAviso {
+  if (/rechaz|saldo: -/i.test(n.titulo)) return 'alerta'
+  if (n.tipo === 'COMPRA') return 'compra'
+  if (n.tipo === 'STOCK')  return 'stock'
+  return 'premio'
+}
 
 export default function Campanita({ uid }: { uid: string }) {
   const sb = supabaseBrowser()
@@ -20,7 +35,7 @@ export default function Campanita({ uid }: { uid: string }) {
   useEffect(() => {
     void (async () => {
       const { data } = await sb.from('notifications')
-        .select('id, titulo, cuerpo, url, leida, created_at')
+        .select('id, tipo, titulo, cuerpo, url, leida, created_at')
         .order('id', { ascending: false })
         .limit(15)
       setLista((data as Notif[]) ?? [])
@@ -34,7 +49,12 @@ export default function Campanita({ uid }: { uid: string }) {
         (p: { new: Notif }) => {
           setLista((prev) => [p.new, ...prev].slice(0, 15))
           // Un aviso que llega mientras el usuario mira otra cosa se anuncia solo.
-          toast(p.new.titulo, { description: p.new.cuerpo ?? undefined })
+          avisar({
+            tipo: estiloDe(p.new),
+            titulo: p.new.titulo,
+            cuerpo: p.new.cuerpo,
+            url: p.new.url,
+          })
         })
       .subscribe()
     return () => { sb.removeChannel(canal) }

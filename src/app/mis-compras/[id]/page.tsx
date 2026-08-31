@@ -1,9 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock, XCircle, AlertTriangle, Gamepad2, User } from 'lucide-react'
 import { supabaseServer } from '@/lib/supabase'
 import { usd, fecha } from '@/lib/format'
-import PinesEntregados, { type Pin } from '@/components/PinesEntregados'
 import ImagenProducto from '@/components/ImagenProducto'
 
 export const dynamic = 'force-dynamic'
@@ -14,6 +13,7 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
 
   type Orden = {
     id: number; numero: string; total_cents: number; estado: string; created_at: string
+    id_jugador: string | null; nombre_jugador: string | null
     order_items: {
       id: number; producto_nombre: string; cantidad: number
       precio_unit_cents: number; subtotal_cents: number
@@ -21,13 +21,16 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
     }[]
   }
 
+  type Redemption = {
+    id: number; estado: string; nombre_jugador: string | null
+    mensaje_error: string | null; duracion_ms: number | null; created_at: string
+  }
+
   const { data: { user } } = await sb.auth.getUser()
 
-  // La orden tiene que ser de quien mira. Un admin puede leer cualquiera por
-  // RLS, pero para revisar las ajenas está el panel, no esta pantalla.
   const { data } = await sb
     .from('orders')
-    .select('id, numero, total_cents, estado, created_at, order_items(id, producto_nombre, cantidad, precio_unit_cents, subtotal_cents, products(imagen_url))')
+    .select('id, numero, total_cents, estado, created_at, id_jugador, nombre_jugador, order_items(id, producto_nombre, cantidad, precio_unit_cents, subtotal_cents, products(imagen_url))')
     .eq('id', id)
     .eq('user_id', user!.id)
     .maybeSingle()
@@ -35,22 +38,26 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
   const orden = data as unknown as Orden | null
   if (!orden) notFound()
 
-  const itemIds = orden.order_items.map((i) => i.id)
+  // Historial de canjes
+  const { data: canjesRaw } = await sb
+    .from('redemptions')
+    .select('id, estado, nombre_jugador, mensaje_error, duracion_ms, created_at')
+    .eq('order_id', orden.id)
+    .order('created_at', { ascending: false })
 
-  // RLS garantiza que solo lleguen los pines de las órdenes de este usuario.
-  const [{ data: pines }, { data: reclamosRaw }, { data: canje }] = await Promise.all([
-    sb.from('pin_codes').select('id, codigo, estado, order_item_id').in('order_item_id', itemIds).order('id'),
-    sb.from('claims').select('pin_code_id, estado').in('order_item_id', itemIds),
-    sb.from('app_settings').select('value').eq('key', 'canje').maybeSingle(),
-  ])
+  const canjes = (canjesRaw ?? []) as Redemption[]
 
-  const reclamos = reclamosRaw as { pin_code_id: number | null }[] | null
+  const estadoConfig: Record<string, { icono: typeof CheckCircle2; color: string; texto: string }> = {
+    COMPLETADA: { icono: CheckCircle2, color: 'text-ok', texto: 'Recarga completada' },
+    PAGADA: { icono: Clock, color: 'text-alerta', texto: 'Pendiente de recarga' },
+    PROCESANDO: { icono: Clock, color: 'text-marca', texto: 'Procesando recarga' },
+    ERROR: { icono: XCircle, color: 'text-error', texto: 'Error en la recarga' },
+    REEMBOLSADA: { icono: AlertTriangle, color: 'text-tenue', texto: 'Reembolsada' },
+    REEMBOLSADA_PARCIAL: { icono: AlertTriangle, color: 'text-alerta', texto: 'Reembolso parcial' },
+  }
 
-  // url_embed se carga dentro del modal; url es el respaldo para pestaña nueva.
-  // Ambas se editan en app_settings sin tocar código.
-  const ajuste = canje?.value as { url?: string; url_embed?: string } | null
-  const urlExterna = ajuste?.url ?? 'https://redeem.wik.do/'
-  const urlEmbed = ajuste?.url_embed ?? urlExterna
+  const cfg = estadoConfig[orden.estado] ?? estadoConfig.PAGADA
+  const Icono = cfg.icono
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:py-9">
@@ -66,6 +73,42 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
         <p className="cifra text-xl font-semibold text-marca">{usd(orden.total_cents)}</p>
       </div>
 
+      {/* Estado de la recarga */}
+      <div className={`tarjeta mt-4 flex items-center gap-3 p-4 ${
+        orden.estado === 'COMPLETADA' ? 'border-ok/40' :
+        orden.estado === 'ERROR' ? 'border-error/40' : ''}`}>
+        <Icono size={22} className={cfg.color} />
+        <div className="flex-1">
+          <p className={`text-sm font-semibold ${cfg.color}`}>{cfg.texto}</p>
+          {orden.nombre_jugador && (
+            <p className="mt-0.5 text-xs text-tenue">
+              Jugador: <span className="font-medium text-fuerte">{orden.nombre_jugador}</span>
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Datos del jugador */}
+      {(orden.id_jugador || orden.nombre_jugador) && (
+        <div className="tarjeta mt-3 divide-y divide-linea">
+          {orden.nombre_jugador && (
+            <div className="flex items-center gap-3 p-3.5 text-sm">
+              <User size={16} className="text-marca" />
+              <span className="text-tenue">Jugador</span>
+              <span className="ml-auto font-semibold">{orden.nombre_jugador}</span>
+            </div>
+          )}
+          {orden.id_jugador && (
+            <div className="flex items-center gap-3 p-3.5 text-sm">
+              <Gamepad2 size={16} className="text-marca" />
+              <span className="text-tenue">ID</span>
+              <span className="cifra ml-auto font-medium">{orden.id_jugador}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Productos */}
       <div className="tarjeta mt-4 divide-y divide-linea">
         {orden.order_items.map((i) => (
           <div key={i.id} className="flex items-center justify-between gap-3 p-3.5 text-sm">
@@ -80,13 +123,72 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
         ))}
       </div>
 
-      <h2 className="subtitulo mb-3 mt-7">Tus pines</h2>
-      <PinesEntregados
-        pines={(pines as Pin[]) ?? []}
-        reclamados={new Set((reclamos ?? []).map((r) => r.pin_code_id))}
-        urlEmbed={urlEmbed}
-        urlExterna={urlExterna}
-      />
+      {/* Mensaje para órdenes pendientes */}
+      {orden.estado === 'PAGADA' && (
+        <div className="tarjeta mt-5 p-4">
+          <p className="subtitulo">Completa tu recarga</p>
+          <p className="mt-2 text-sm text-tenue">
+            Tu pago fue confirmado. Regresa a la tienda y selecciona este producto
+            para ingresar tu ID de Free Fire y recibir los diamantes.
+          </p>
+        </div>
+      )}
+
+      {/* Mensaje para errores */}
+      {orden.estado === 'ERROR' && (
+        <div className="tarjeta mt-5 border-error/30 p-4">
+          <p className="subtitulo text-error">Hubo un problema</p>
+          <p className="mt-2 text-sm text-tenue">
+            No se pudo completar la recarga automática. Puedes intentar de nuevo
+            desde la tienda o contactar soporte.
+          </p>
+          {canjes[0]?.mensaje_error && (
+            <p className="mt-2 rounded-lg bg-error/8 px-3 py-2 text-xs text-error">
+              {canjes[0].mensaje_error}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Historial de canjes (solo si hay intentos) */}
+      {canjes.length > 0 && (
+        <>
+          <h2 className="subtitulo mb-3 mt-7">Historial de operaciones</h2>
+          <div className="space-y-2">
+            {canjes.map((c) => {
+              const exito = c.estado === 'EXITO'
+              return (
+                <div key={c.id} className="tarjeta p-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {exito
+                        ? <CheckCircle2 size={15} className="text-ok" />
+                        : <XCircle size={15} className="text-error" />}
+                      <span className={`text-sm font-medium ${exito ? 'text-ok' : 'text-error'}`}>
+                        {exito ? 'Canje exitoso' : `Error: ${c.estado}`}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-tenue">{fecha(c.created_at)}</span>
+                  </div>
+                  {c.nombre_jugador && (
+                    <p className="mt-1.5 text-xs text-tenue">
+                      Jugador: <span className="font-medium">{c.nombre_jugador}</span>
+                    </p>
+                  )}
+                  {c.mensaje_error && !exito && (
+                    <p className="mt-1.5 text-xs text-error/80">{c.mensaje_error}</p>
+                  )}
+                  {c.duracion_ms != null && (
+                    <p className="mt-1 text-[11px] text-tenue">
+                      Duración: {(c.duracion_ms / 1000).toFixed(1)}s
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { cookieDeSesion } from '@/lib/cookies-sesion'
 
 /** Rutas que exigen sesión iniciada. */
-const PRIVADAS = ['/carrito', '/billetera', '/recargar', '/mis-compras', '/admin', '/cuenta',
+const PRIVADAS = ['/billetera', '/recargar', '/mis-compras', '/admin', '/cuenta',
                   '/completar-perfil']
 
 /** Privadas donde sí se entra con el perfil a medias: son las que lo completan. */

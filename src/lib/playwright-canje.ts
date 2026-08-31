@@ -25,7 +25,7 @@ function getBrowserlessToken(): string {
  * Código JavaScript que se envía a Browserless para ejecutarse dentro de su navegador Chrome.
  */
 const BROWSERLESS_SCRIPT = `
-module.exports = async ({ page, context }) => {
+export default async ({ page, context }) => {
   const { pin, idJugador } = context;
   const WIDGET_URL = 'https://redeem.hype.games/widget/';
 
@@ -233,3 +233,4 @@ export async function canjeAutomatico(params: {
     }
   }
 }
+

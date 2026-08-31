@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabaseServer } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 import { canjeAutomatico } from '@/lib/playwright-canje'
-
-/** Vercel Pro: el canje automático puede tomar hasta 60 segundos. */
-export const maxDuration = 60
 
 /**
  * POST /api/recarga/ejecutar
@@ -13,11 +10,34 @@ export const maxDuration = 60
  * 2. Reserva un PIN disponible
  * 3. Ejecuta el canje en redeem.hype.games via Playwright/Browserless
  * 4. Registra el resultado
+ *
+ * Auth: recibe el access_token en el header Authorization
+ * (las cookies de Supabase no llegan bien con Cloudflare como proxy)
  */
 export async function POST(req: Request) {
   const inicio = Date.now()
 
   try {
+    // Auth: extraer token del header
+    const authHeader = req.headers.get('Authorization')
+    const token = authHeader?.replace('Bearer ', '')
+
+    if (!token) {
+      return NextResponse.json({ error: 'NO_AUTH', mensaje: 'Token de autorización requerido.' }, { status: 401 })
+    }
+
+    // Crear Supabase client con el token del usuario
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } },
+    )
+
+    const { data: { user } } = await sb.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'NO_AUTH', mensaje: 'Sesión inválida o expirada.' }, { status: 401 })
+    }
+
     const { order_id, id_jugador } = await req.json()
 
     if (!order_id || !id_jugador) {
@@ -36,14 +56,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const sb = await supabaseServer()
-
     // 1. Verificar que la orden existe y está PAGADA
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'NO_AUTH' }, { status: 401 })
-    }
-
     const { data: orden } = await sb
       .from('orders')
       .select('id, estado, user_id')
@@ -78,16 +91,10 @@ export async function POST(req: Request) {
       )
     }
 
-    // Marcar orden como PROCESANDO
-    await sb.from('orders').update({ estado: 'PROCESANDO' }).eq('id', order_id)
-
-    // 3. Canjear cada PIN (normalmente es 1 para compra directa)
+    // 3. Canjear cada PIN
     const resultados = []
 
     for (const pin of pines as { pin_code_id: number; codigo: string; order_item_id: number }[]) {
-      // Marcar PIN como PROCESANDO
-      await sb.from('pin_codes').update({ estado: 'PROCESANDO' }).eq('id', pin.pin_code_id)
-
       const inicioPin = Date.now()
 
       try {
@@ -149,6 +156,7 @@ export async function POST(req: Request) {
     })
   } catch (err) {
     const mensaje = err instanceof Error ? err.message : 'Error interno'
+    console.error('[ejecutar] Error:', mensaje)
     return NextResponse.json({ error: 'ERROR_INTERNO', mensaje }, { status: 500 })
   }
 }

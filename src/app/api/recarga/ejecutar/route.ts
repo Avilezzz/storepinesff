@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
     const sb = await supabaseServer()
 
-    // 1. Verificar que la orden es del usuario y está PAGADA
+    // 1. Verificar que la orden existe y está PAGADA
     const { data: { user } } = await sb.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'NO_AUTH' }, { status: 401 })

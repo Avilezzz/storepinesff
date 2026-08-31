@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { usd, mensajeError } from '@/lib/format'
+import { supabaseBrowser } from '@/lib/supabase-client'
 import { refrescarCarrito } from '@/lib/sesion'
 import type { Producto } from './Catalogo'
 
@@ -86,26 +87,20 @@ export default function ModalRecarga({ producto, saldo, onCerrar, onCompraExitos
     setOcupado(true)
 
     try {
-      const res = await fetch('/api/recarga/comprar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_id: producto.id,
-          cantidad: 1,
-          client_request_id: requestIdRef.current,
-        }),
+      const sb = supabaseBrowser()
+      const { data, error } = await sb.rpc('fn_compra_directa', {
+        p_product_id: producto.id,
+        p_cantidad: 1,
+        p_client_request_id: requestIdRef.current,
       })
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        const msg = data.error ?? 'Error al procesar el pago'
-        toast.error(mensajeError(msg))
+      if (error) {
+        toast.error(mensajeError(error.message))
         setOcupado(false)
         return
       }
 
-      setOrderId(data.order_id)
+      setOrderId(data as number)
       refrescarCarrito()
       setPaso('id')
     } catch {

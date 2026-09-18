@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, BellRing, BellPlus, Eye, Zap } from 'lucide-react'
+import { Plus, Check, Loader2, BellRing, BellPlus, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
-import { useSesion } from '@/lib/sesion'
+import { useSesion, refrescarCarrito } from '@/lib/sesion'
 import { usd, mensajeError } from '@/lib/format'
 import ImagenProducto from './ImagenProducto'
 import ModalProducto from './ModalProducto'
-import ModalRecarga from './ModalRecarga'
 
 export type Producto = {
   id: string
@@ -24,16 +23,17 @@ export type Producto = {
 export default function Catalogo({ productos }: { productos: Producto[] }) {
   const sb = supabaseBrowser()
   const router = useRouter()
-  const { uid, saldo, cargando } = useSesion()
+  const { uid, cargando } = useSesion()
   const [stock, setStock] = useState<Record<string, number>>(
     () => Object.fromEntries(productos.map((p) => [p.id, p.stock_disponible])),
   )
   const [ocupado, setOcupado] = useState<string | null>(null)
+  const [listo, setListo] = useState<string | null>(null)
   const [pedidos, setPedidos] = useState<Set<string>>(new Set())
   const [detalle, setDetalle] = useState<Producto | null>(null)
-  const [recargando, setRecargando] = useState<Producto | null>(null)
 
-  // Stock en tiempo real
+  // El catálogo llega de una página cacheada, así que el stock puede venir
+  // desfasado. Realtime lo corrige al montar y con cada compra ajena.
   useEffect(() => {
     void (async () => {
       const { data } = await sb.from('products').select('id, stock_disponible').eq('activo', true)
@@ -51,7 +51,8 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
     return () => { sb.removeChannel(canal) }
   }, [sb])
 
-  // Qué productos agotados ya pidió este usuario
+  // Qué productos agotados ya pidió este usuario, para no ofrecerle pedirlos
+  // otra vez ni dejar el botón mintiendo tras recargar la página.
   useEffect(() => {
     if (!uid) return setPedidos(new Set())
     void (async () => {
@@ -76,19 +77,33 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
     })
   }
 
-  /** Abre el modal de recarga directa para este producto. */
-  function comprar(p: Producto) {
+  async function agregar(p: Producto, cantidad = 1) {
     if (!uid) return router.push('/login?volver=/')
-    setDetalle(null) // cerrar detalle si estaba abierto
-    setRecargando(p)
-  }
 
-  function onCompraExitosa(orderId: number) {
-    // Refrescar stock y redirigir a la orden
-    router.refresh()
-    setTimeout(() => {
-      router.push(`/mis-compras/${orderId}`)
-    }, 1500)
+    setOcupado(p.id)
+    const { data: fila, error: errorCarrito } = await sb.from('cart_items')
+      .select('cantidad').eq('user_id', uid).eq('product_id', p.id).maybeSingle()
+    if (errorCarrito) {
+      setOcupado(null)
+      return toast.error(mensajeError(errorCarrito.message))
+    }
+    const actual = (fila as { cantidad: number } | null)?.cantidad ?? 0
+
+    const { error } = await sb.rpc('fn_cart_set', {
+      p_product_id: p.id,
+      p_cantidad: Math.min(actual + cantidad, 50),
+    })
+    setOcupado(null)
+
+    if (error) return toast.error(mensajeError(error.message))
+
+    setDetalle(null)
+    refrescarCarrito()
+    setListo(p.id)
+    setTimeout(() => setListo(null), 1400)
+    toast.success(`${cantidad > 1 ? `${cantidad} × ` : ''}${p.nombre} en el carrito`, {
+      action: { label: 'Ver carrito', onClick: () => router.push('/carrito') },
+    })
   }
 
   return (
@@ -103,12 +118,17 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
           const s = stock[p.id] ?? 0
           const agotado = s <= 0
           const enCurso = ocupado === p.id
+          const recien = listo === p.id
           const pedido = pedidos.has(p.id)
 
           return (
             <article key={p.id}
               className={`tarjeta group flex flex-col overflow-hidden transition ${
                 agotado ? 'border-error/40' : 'border-ok/40 hover:border-ok/60'}`}>
+              {/* La imagen es la card: el arte ya trae la cantidad de diamantes,
+                  así que abajo solo queda el precio y la acción. */}
+              {/* Toda el arte abre el detalle: es el área grande y obvia de
+                  tocar, y deja el botón de abajo libre para la compra rápida. */}
               <button
                 type="button"
                 onClick={() => setDetalle(p)}
@@ -125,6 +145,8 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                   className="aspect-4/5 w-full"
                 />
 
+                {/* Agotado conserva el color del arte: se marca con un velo
+                    oscuro y una cinta, no apagando el producto. */}
                 {agotado && (
                   <span aria-hidden className="absolute inset-0 bg-[#080a0e]/45" />
                 )}
@@ -169,13 +191,14 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                   </button>
                 ) : (
                   <button
-                    onClick={() => comprar(p)}
+                    onClick={() => agregar(p)}
                     disabled={enCurso || cargando}
-                    aria-label={`Comprar ${p.nombre}`}
-                    className="btn btn-primario w-full"
+                    aria-label={`Agregar ${p.nombre} al carrito`}
+                    className={`btn w-full ${recien ? 'btn-suave' : 'btn-primario'}`}
                   >
                     {enCurso ? <Loader2 size={15} className="animate-spin" />
-                      : <><Zap size={15} /> Comprar</>}
+                      : recien ? <><Check size={15} className="text-ok" /> Agregado</>
+                      : <><Plus size={15} /> Agregar</>}
                   </button>
                 )}
               </div>
@@ -193,16 +216,9 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
         stock={detalle ? stock[detalle.id] ?? 0 : 0}
         ocupado={ocupado === detalle?.id}
         pedido={detalle ? pedidos.has(detalle.id) : false}
-        onComprar={comprar}
+        onAgregar={agregar}
         onSolicitar={solicitar}
         onCerrar={() => setDetalle(null)}
-      />
-
-      <ModalRecarga
-        producto={recargando}
-        saldo={saldo}
-        onCerrar={() => setRecargando(null)}
-        onCompraExitosa={onCompraExitosa}
       />
     </section>
   )

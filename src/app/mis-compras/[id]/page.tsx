@@ -1,9 +1,10 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, CheckCircle2, Clock, XCircle, AlertTriangle, Gamepad2, User } from 'lucide-react'
 import { supabaseServer } from '@/lib/supabase'
 import { usd, fecha } from '@/lib/format'
 import ImagenProducto from '@/components/ImagenProducto'
+import PinesEntregados, { type Pin } from '@/components/PinesEntregados'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,12 +28,13 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
   }
 
   const { data: { user } } = await sb.auth.getUser()
+  if (!user) redirect('/login')
 
   const { data } = await sb
     .from('orders')
     .select('id, numero, total_cents, estado, created_at, id_jugador, nombre_jugador, order_items(id, producto_nombre, cantidad, precio_unit_cents, subtotal_cents, products(imagen_url))')
     .eq('id', id)
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
     .maybeSingle()
 
   const orden = data as unknown as Orden | null
@@ -46,10 +48,30 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
     .order('created_at', { ascending: false })
 
   const canjes = (canjesRaw ?? []) as Redemption[]
+  if (!canjesRaw) throw new Error('No se pudo consultar el historial de la compra.')
+
+  // Las órdenes automáticas conservan su historial, sin ofrecer de nuevo sus pines.
+  const esManual = !orden.id_jugador && canjes.length === 0 && orden.estado !== 'PROCESANDO' && orden.estado !== 'ERROR'
+  const itemIds = orden.order_items.map((item) => item.id)
+  const [pinesResult, reclamosResult, configResult] = esManual && itemIds.length > 0
+    ? await Promise.all([
+        sb.from('pin_codes').select('id, codigo, estado, order_item_id')
+          .in('order_item_id', itemIds).in('estado', ['VENDIDO', 'DEFECTUOSO']).order('id'),
+        sb.from('claims').select('pin_code_id').in('order_item_id', itemIds),
+        sb.from('app_settings').select('value').eq('key', 'canje').maybeSingle(),
+      ])
+    : [null, null, null]
+  if (pinesResult?.error || reclamosResult?.error || configResult?.error) {
+    throw new Error('No se pudieron cargar los pines. Actualiza la página; no vuelvas a pagar.')
+  }
+  const pines = (pinesResult?.data ?? []) as Pin[]
+  const config = configResult?.data?.value as { url?: string; url_embed?: string } | undefined
+  const urlExterna = config?.url || 'https://redeem.wik.do/'
+  const urlEmbed = config?.url_embed || urlExterna
 
   const estadoConfig: Record<string, { icono: typeof CheckCircle2; color: string; texto: string }> = {
-    COMPLETADA: { icono: CheckCircle2, color: 'text-ok', texto: 'Recarga completada' },
-    PAGADA: { icono: Clock, color: 'text-alerta', texto: 'Pendiente de recarga' },
+    COMPLETADA: { icono: CheckCircle2, color: 'text-ok', texto: esManual ? 'Compra completada · canje manual' : 'Recarga completada' },
+    PAGADA: { icono: Clock, color: 'text-alerta', texto: pines.length > 0 ? 'Pines entregados · canje manual' : 'Compra pagada' },
     PROCESANDO: { icono: Clock, color: 'text-marca', texto: 'Procesando recarga' },
     ERROR: { icono: XCircle, color: 'text-error', texto: 'Error en la recarga' },
     REEMBOLSADA: { icono: AlertTriangle, color: 'text-tenue', texto: 'Reembolsada' },
@@ -124,12 +146,20 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
       </div>
 
       {/* Mensaje para órdenes pendientes */}
-      {orden.estado === 'PAGADA' && (
+      {esManual && pines.length > 0 && (
+        <>
+          <h2 className="subtitulo mb-3 mt-7">Tus pines</h2>
+          <PinesEntregados pines={pines}
+            reclamados={new Set((reclamosResult?.data ?? []).map((r) => r.pin_code_id))}
+            urlEmbed={urlEmbed} urlExterna={urlExterna} />
+        </>
+      )}
+      {(orden.estado === 'PAGADA' || (esManual && orden.estado === 'COMPLETADA')) && pines.length === 0 && (
         <div className="tarjeta mt-5 p-4">
-          <p className="subtitulo">Completa tu recarga</p>
+          <p className="subtitulo">Tu compra ya está pagada</p>
           <p className="mt-2 text-sm text-tenue">
-            Tu pago fue confirmado. Regresa a la tienda y selecciona este producto
-            para ingresar tu ID de Free Fire y recibir los diamantes.
+            No vuelvas a comprar este producto para completar esta orden.
+            Contacta soporte con el número de compra para revisar la entrega.
           </p>
         </div>
       )}
@@ -139,8 +169,8 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
         <div className="tarjeta mt-5 border-error/30 p-4">
           <p className="subtitulo text-error">Hubo un problema</p>
           <p className="mt-2 text-sm text-tenue">
-            No se pudo completar la recarga automática. Puedes intentar de nuevo
-            desde la tienda o contactar soporte.
+            No se pudo completar la recarga automática anterior. Contacta soporte
+            con el número de compra. No vuelvas a pagar para resolver esta orden.
           </p>
           {canjes[0]?.mensaje_error && (
             <p className="mt-2 rounded-lg bg-error/8 px-3 py-2 text-xs text-error">

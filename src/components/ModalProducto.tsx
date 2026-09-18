@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { X, Loader2, BellRing, BellPlus, ShieldCheck, Zap } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { X, Plus, Minus, Check, Loader2, BellRing, BellPlus, ShieldCheck, Zap } from 'lucide-react'
 import { usd } from '@/lib/format'
 import ImagenProducto from './ImagenProducto'
 import type { Producto } from './Catalogo'
+
+/** Tope del carrito: el mismo que aplica `fn_cart_set` en la base. */
+const MAX = 50
 
 type Props = {
   producto: Producto | null
@@ -12,18 +15,22 @@ type Props = {
   stock: number
   ocupado: boolean
   pedido: boolean
-  onComprar: (p: Producto) => unknown
+  onAgregar: (p: Producto, cantidad: number) => unknown
   onSolicitar: (p: Producto) => unknown
   onCerrar: () => void
 }
 
 /**
- * Detalle de un producto con opción de compra directa.
- * En móvil sube desde abajo y en escritorio se centra.
+ * Detalle de un pin sin sacar al usuario del catálogo: la card es un resumen
+ * (arte, precio y un botón), así que todo lo demás —cuántos diamantes, cuánto
+ * queda, cuántos llevar— vive aquí.
+ *
+ * En móvil sube desde abajo y en escritorio se centra, igual que `Dialogo`.
  */
 export default function ModalProducto({
-  producto, stock, ocupado, pedido, onComprar, onSolicitar, onCerrar,
+  producto, stock, ocupado, pedido, onAgregar, onSolicitar, onCerrar,
 }: Props) {
+  const [cantidad, setCantidad] = useState(1)
   const cerrarRef = useRef<HTMLButtonElement>(null)
 
   // `onCerrar` suele llegar como arrow nueva en cada render del catálogo. Si
@@ -34,9 +41,11 @@ export default function ModalProducto({
 
   const abierto = producto !== null
   const agotado = stock <= 0
+  const tope = Math.min(stock, MAX)
 
   useEffect(() => {
     if (!abierto) return
+    setCantidad(1)
     const t = setTimeout(() => cerrarRef.current?.focus(), 60)
 
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') alCerrar.current() }
@@ -49,11 +58,16 @@ export default function ModalProducto({
     }
   }, [abierto, producto?.id])
 
-
+  // El stock puede caer por realtime mientras el modal está abierto: si el
+  // usuario ya había elegido más de lo que queda, se le baja la cantidad.
+  useEffect(() => {
+    if (tope > 0) setCantidad((c) => Math.min(c, tope))
+  }, [tope])
 
   if (!producto) return null
 
   const p = producto
+  const total = p.precio_cents * cantidad
 
   return (
     <div
@@ -112,7 +126,7 @@ export default function ModalProducto({
                 </p>
                 <div className="mt-1.5 flex items-baseline gap-2 sm:hidden">
                   <p className="cifra text-2xl font-semibold text-marca">{usd(p.precio_cents)}</p>
-                  <span className="text-[11px] text-tenue">por recarga</span>
+                  <span className="text-[11px] text-tenue">por pin</span>
                 </div>
               </div>
 
@@ -128,7 +142,7 @@ export default function ModalProducto({
 
             <div className="hidden items-baseline gap-2 sm:flex">
               <p className="cifra text-3xl font-semibold text-marca">{usd(p.precio_cents)}</p>
-              <span className="text-xs text-tenue">por recarga</span>
+              <span className="text-xs text-tenue">por pin</span>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -139,13 +153,13 @@ export default function ModalProducto({
               </span>
               {/* Sellos de confianza: en móvil el espacio se reserva para la
                   compra, así que no compiten con ella. */}
-              <span className="chip hidden bg-panel2 text-tenue sm:inline-flex"><Zap size={12} /> Recarga automática</span>
-              <span className="chip hidden bg-panel2 text-tenue sm:inline-flex"><ShieldCheck size={12} /> Entrega directa</span>
+              <span className="chip hidden bg-panel2 text-tenue sm:inline-flex"><Zap size={12} /> Entrega inmediata</span>
+              <span className="chip hidden bg-panel2 text-tenue sm:inline-flex"><ShieldCheck size={12} /> Pin oficial</span>
             </div>
 
             <p className="text-xs leading-relaxed text-tenue sm:text-sm">
-              Al comprar, solo ingresas tu <span className="text-fuerte">ID de Free Fire</span> y
-              los diamantes se envían automáticamente a tu cuenta. Se descuenta del saldo de tu billetera.
+              Al comprarlo recibes el código del pin en <span className="text-fuerte">Mis compras</span>,
+              listo para canjear en la página oficial de recargas. Se descuenta del saldo de tu billetera.
             </p>
 
             {agotado ? (
@@ -160,18 +174,43 @@ export default function ModalProducto({
               </button>
             ) : (
               <div className="mt-auto flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-medium text-tenue">Cantidad</span>
+                  <div className="flex items-center gap-1 rounded-lg border border-linea bg-panel2 p-1">
+                    <button
+                      onClick={() => setCantidad((c) => Math.max(1, c - 1))}
+                      disabled={cantidad <= 1}
+                      aria-label="Quitar uno"
+                      className="btn-icono h-9 min-w-9 sm:h-7 sm:min-w-7"
+                    >
+                      <Minus size={15} />
+                    </button>
+                    <span aria-live="polite" className="cifra w-9 text-center text-base font-semibold text-fuerte sm:w-8 sm:text-sm">
+                      {cantidad}
+                    </span>
+                    <button
+                      onClick={() => setCantidad((c) => Math.min(tope, c + 1))}
+                      disabled={cantidad >= tope}
+                      aria-label="Agregar uno"
+                      className="btn-icono h-9 min-w-9 sm:h-7 sm:min-w-7"
+                    >
+                      <Plus size={15} />
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex items-baseline justify-between border-t border-linea pt-3">
-                  <span className="text-xs text-tenue">Precio</span>
-                  <span className="cifra text-lg font-semibold text-fuerte">{usd(p.precio_cents)}</span>
+                  <span className="text-xs text-tenue">Total</span>
+                  <span className="cifra text-lg font-semibold text-fuerte">{usd(total)}</span>
                 </div>
 
                 <button
-                  onClick={() => onComprar(p)}
+                  onClick={() => onAgregar(p, cantidad)}
                   disabled={ocupado}
                   className="btn btn-primario w-full py-2.5 sm:py-[0.5625rem]"
                 >
                   {ocupado ? <Loader2 size={15} className="animate-spin" />
-                    : <><Zap size={15} /> Comprar ahora</>}
+                    : <><Check size={15} /> Agregar al carrito</>}
                 </button>
               </div>
             )}

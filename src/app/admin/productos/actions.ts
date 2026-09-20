@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase'
 
-type Cambios = { nombre?: string; precio_cents?: number; imagen_url?: string | null; activo?: boolean }
+type Cambios = { nombre?: string; precio_cents?: number; pvp_sugerido_cents?: number; imagen_url?: string | null; activo?: boolean }
 
 export async function actualizarProducto(id: string, cambios: Cambios) {
   const sb = await supabaseServer()
@@ -23,6 +23,11 @@ export async function actualizarProducto(id: string, cambios: Cambios) {
       return { error: { message: 'Precio inválido.' } }
     patch.precio_cents = cambios.precio_cents
   }
+  if ('pvp_sugerido_cents' in cambios) {
+    if (!Number.isSafeInteger(cambios.pvp_sugerido_cents) || cambios.pvp_sugerido_cents! <= 0)
+      return { error: { message: 'PVP sugerido inválido.' } }
+    patch.pvp_sugerido_cents = cambios.pvp_sugerido_cents
+  }
   if ('activo' in cambios) {
     if (typeof cambios.activo !== 'boolean') return { error: { message: 'Visibilidad inválida.' } }
     patch.activo = cambios.activo
@@ -38,7 +43,7 @@ export async function actualizarProducto(id: string, cambios: Cambios) {
 
   // single exige una fila actualizada: RLS puede devolver cero filas sin error.
   const { data, error } = await sb.from('products').update(patch).eq('id', id)
-    .select('id, nombre, precio_cents, imagen_url, activo').single()
+    .select('id, nombre, precio_cents, pvp_sugerido_cents, imagen_url, activo').single()
   if (error || !data) return { error: { message: 'No se pudo guardar el producto. Revisa tu sesión y vuelve a intentarlo.' } }
 
   revalidatePath('/')

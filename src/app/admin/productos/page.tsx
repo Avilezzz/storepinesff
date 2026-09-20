@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export default async function Productos() {
   const sb = await supabaseServer()
   const { data } = await sb.from('products')
-    .select('id, slug, nombre, diamantes, precio_cents, activo, orden, stock_disponible, imagen_url')
+    .select('id, slug, nombre, diamantes, precio_cents, pvp_sugerido_cents, activo, orden, stock_disponible, imagen_url')
     .order('orden')
 
   return <AdminProductos productos={(data as Producto[]) ?? []} />

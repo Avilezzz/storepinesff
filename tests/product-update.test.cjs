@@ -33,6 +33,13 @@ test('confirma precio e invalida catálogo y panel', async () => {
   assert.equal(f.updates[0].precio_cents, 450)
   assert.deepEqual(f.paths, ['/', '/admin/productos', '/carrito'])
 })
+test('valida y guarda el PVP sugerido', async () => {
+  const f = fixture()
+  assert.ok((await f.update('product', { pvp_sugerido_cents: 0 })).error)
+  assert.ok((await f.update('product', { pvp_sugerido_cents: 120.5 })).error)
+  assert.equal((await f.update('product', { pvp_sugerido_cents: 175 })).error, null)
+  assert.equal(f.updates[0].pvp_sugerido_cents, 175)
+})
 test('no anuncia éxito ni invalida caché si no se actualizó ninguna fila', async () => {
   const f = fixture({ saved: { data: null, error: { code: 'PGRST116' } } })
   assert.ok((await f.update('product', { precio_cents: 450 })).error)

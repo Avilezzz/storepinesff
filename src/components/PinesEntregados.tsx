@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Copy, Check, Flag, CopyCheck, Ticket } from 'lucide-react'
+import { Copy, Check, Flag, CopyCheck, Ticket, BadgeDollarSign, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { mensajeError } from '@/lib/format'
+import { refrescarGanancia } from '@/lib/sesion'
 import Dialogo from './ui/Dialogo'
 import ModalCanje from './ModalCanje'
 
@@ -13,11 +14,13 @@ export type Pin = { id: number; codigo: string; estado: string; order_item_id: n
 
 const MOTIVOS = ['El código ya fue canjeado', 'El código no es válido', 'Otro problema']
 
-export default function PinesEntregados({ pines, reclamados, urlEmbed, urlExterna }: {
+export default function PinesEntregados({ pines, reclamados, urlEmbed, urlExterna, esRevendedor = false, ventasRegistradas = new Set<number>() }: {
   pines: Pin[]
   reclamados: Set<number | null>
   urlEmbed: string
   urlExterna: string
+  esRevendedor?: boolean
+  ventasRegistradas?: Set<number>
 }) {
   const sb = supabaseBrowser()
   const router = useRouter()
@@ -26,6 +29,8 @@ export default function PinesEntregados({ pines, reclamados, urlEmbed, urlExtern
   const [motivo, setMotivo] = useState(MOTIVOS[0])
   const [canjeando, setCanjeando] = useState<string | null>(null)
   const [modalAbierto, setModalAbierto] = useState(false)
+  const [registrados, setRegistrados] = useState(ventasRegistradas)
+  const [registrando, setRegistrando] = useState<number | null>(null)
 
   async function copiar(texto: string, marca: number, aviso: string) {
     try {
@@ -41,11 +46,23 @@ export default function PinesEntregados({ pines, reclamados, urlEmbed, urlExtern
   /** Deja el pin ya en el portapapeles antes de abrir el widget: dentro del
    *  iframe solo queda pegar, que es lo único que el navegador nos deja hacer
    *  desde fuera de su origen. */
-  async function abrirCanje(codigo: string | null) {
-    if (codigo) {
-      try { await navigator.clipboard.writeText(codigo) } catch { /* se copia a mano */ }
+  async function registrarVenta(pin: Pin, tipo: 'VENTA' | 'CANJE') {
+    if (registrados.has(pin.id)) return true
+    setRegistrando(pin.id)
+    const { error } = await sb.rpc('fn_revendedor_registrar_venta', { p_pin_code_id: pin.id, p_tipo: tipo })
+    setRegistrando(null)
+    if (error) { toast.error(mensajeError(error.message)); return false }
+    setRegistrados(prev => new Set(prev).add(pin.id)); refrescarGanancia(); router.refresh()
+    toast.success(tipo === 'CANJE' ? 'Canje y ganancia registrados' : 'Venta y ganancia registradas')
+    return true
+  }
+
+  async function abrirCanje(pin: Pin | null) {
+    if (pin && esRevendedor && !(await registrarVenta(pin, 'CANJE'))) return
+    if (pin?.codigo) {
+      try { await navigator.clipboard.writeText(pin.codigo) } catch { /* se copia a mano */ }
     }
-    setCanjeando(codigo)
+    setCanjeando(pin?.codigo ?? null)
     setModalAbierto(true)
   }
 
@@ -98,12 +115,13 @@ export default function PinesEntregados({ pines, reclamados, urlEmbed, urlExtern
                     </button>
 
                     <div className="flex items-center gap-1.5">
+                      {esRevendedor && <button disabled={registrando === p.id || registrados.has(p.id)} onClick={() => registrarVenta(p, 'VENTA')} className="btn btn-suave px-3 py-1.5 text-xs">{registrando === p.id ? <Loader2 size={13} className="animate-spin" /> : registrados.has(p.id) ? <Check size={13} className="text-ok" /> : <BadgeDollarSign size={13} />}{registrados.has(p.id) ? 'Registrada' : 'Registrar venta'}</button>}
                       <button onClick={() => copiar(p.codigo, p.id, 'Código copiado')}
                         className="btn btn-suave px-3 py-1.5 text-xs">
                         {copiado === p.id ? <><Check size={13} className="text-ok" /> Copiado</>
                           : <><Copy size={13} /> Copiar</>}
                       </button>
-                      <button onClick={() => abrirCanje(p.codigo)}
+                      <button onClick={() => abrirCanje(p)}
                         className="btn btn-primario px-3 py-1.5 text-xs">
                         <Ticket size={13} /> Canjear
                       </button>
@@ -131,7 +149,7 @@ export default function PinesEntregados({ pines, reclamados, urlEmbed, urlExtern
         </ol>
 
         {utilizables.length > 0 && (
-          <button onClick={() => abrirCanje(utilizables.length === 1 ? utilizables[0].codigo : null)}
+          <button onClick={() => abrirCanje(utilizables.length === 1 ? utilizables[0] : null)}
             className="btn btn-suave mt-4 w-full sm:w-auto">
             <Ticket size={14} /> Abrir sitio de canje
           </button>

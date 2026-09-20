@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Store, ShoppingCart, Wallet, Package, Settings } from 'lucide-react'
+import { Store, ShoppingCart, Wallet, Package, Settings, TrendingUp } from 'lucide-react'
 import { useSesion } from '@/lib/sesion'
 
 /**
@@ -11,7 +11,7 @@ import { useSesion } from '@/lib/sesion'
  */
 export default function BarraMovil() {
   const ruta = usePathname()
-  const { uid, rol, items } = useSesion()
+  const { uid, rol, esRevendedor, items } = useSesion()
 
   if (!uid || ruta === '/login' || ruta === '/registro') return null
 
@@ -20,6 +20,7 @@ export default function BarraMovil() {
     { href: '/carrito', txt: 'Carrito', Icono: ShoppingCart, n: items },
     { href: '/mis-compras', txt: 'Compras', Icono: Package },
     { href: '/billetera', txt: 'Saldo', Icono: Wallet },
+    ...(esRevendedor ? [{ href: '/ganancias', txt: 'Ganancia', Icono: TrendingUp }] : []),
     ...(rol === 'ADMIN' ? [{ href: '/admin', txt: 'Admin', Icono: Settings }] : []),
   ]
 

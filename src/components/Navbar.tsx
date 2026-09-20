@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ShoppingCart, Wallet, Package, ArrowUpCircle, Settings, LogOut, UserCog } from 'lucide-react'
+import { ShoppingCart, Wallet, Package, ArrowUpCircle, Settings, LogOut, UserCog, TrendingUp } from 'lucide-react'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { useSesion } from '@/lib/sesion'
 import { usd } from '@/lib/format'
@@ -22,7 +22,7 @@ const MENU = [
 export default function Navbar() {
   const sb = supabaseBrowser()
   const router = useRouter()
-  const { uid, nombre, rol, saldo, items, cargando } = useSesion()
+  const { uid, nombre, rol, esRevendedor, ganancia, saldo, items, cargando } = useSesion()
   const [abierto, setAbierto] = useState(false)
   const caja = useRef<HTMLDivElement>(null)
 
@@ -67,6 +67,9 @@ export default function Navbar() {
               <Wallet size={14} className="text-tenue" />
               <span className="cifra font-semibold">{saldo === null ? '—' : usd(saldo)}</span>
             </Link>
+            {esRevendedor && <Link href="/ganancias" className="hidden items-center gap-1.5 rounded-lg border border-linea bg-panel px-2.5 py-1.5 text-sm transition hover:border-ok/50 md:flex">
+              <TrendingUp size={14} className="text-ok" /><span className="cifra font-semibold">{ganancia === null ? '—' : usd(ganancia)}</span>
+            </Link>}
 
             <Campanita uid={uid} />
 
@@ -109,6 +112,7 @@ export default function Navbar() {
                       <Icono size={16} /> {txt}
                     </Link>
                   ))}
+                  {esRevendedor && <Link href="/ganancias" role="menuitem" onClick={() => setAbierto(false)} className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-ok transition hover:bg-panel2"><TrendingUp size={16} /> Mis ganancias</Link>}
 
                   {rol === 'ADMIN' && (
                     <Link href="/admin" role="menuitem" onClick={() => setAbierto(false)}

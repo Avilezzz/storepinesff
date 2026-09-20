@@ -7,12 +7,14 @@ export type Sesion = {
   uid: string | null
   nombre: string
   rol: 'CLIENTE' | 'ADMIN'
+  esRevendedor: boolean
+  ganancia: number | null
   saldo: number | null
   items: number
   cargando: boolean
 }
 
-const VACIA: Sesion = { uid: null, nombre: '', rol: 'CLIENTE', saldo: null, items: 0, cargando: true }
+const VACIA: Sesion = { uid: null, nombre: '', rol: 'CLIENTE', esRevendedor: false, ganancia: null, saldo: null, items: 0, cargando: true }
 
 /**
  * Estado de sesión compartido por la barra superior y la barra inferior móvil.
@@ -38,6 +40,10 @@ export function refrescarCarrito() {
   window.dispatchEvent(new Event('carrito-cambio'))
 }
 
+export function refrescarGanancia() {
+  window.dispatchEvent(new Event('ganancia-cambio'))
+}
+
 function arrancar() {
   if (iniciado) return
   iniciado = true
@@ -49,6 +55,12 @@ function arrancar() {
     if (uid === uidActual) emitir({ items: count ?? 0 })
   }
 
+  const cargarGanancia = async (uid: string) => {
+    const { data } = await sb.from('reseller_sales').select('profit_cents').eq('user_id', uid)
+    const ventas = data as { profit_cents: number }[] | null
+    if (uid === uidActual) emitir({ ganancia: (ventas ?? []).reduce((s: number, x) => s + Number(x.profit_cents), 0) })
+  }
+
   const suscribir = (uid: string) => {
     if (canal) { sb.removeChannel(canal); canal = null }
     canal = sb
@@ -56,25 +68,31 @@ function arrancar() {
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'wallets', filter: `user_id=eq.${uid}` },
         (p: { new: { balance_cents: number } }) => emitir({ saldo: p.new.balance_cents }))
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'reseller_sales', filter: `user_id=eq.${uid}` },
+        () => void cargarGanancia(uid))
       .subscribe()
   }
 
   const cargar = async (uid: string) => {
     try {
       const [p, w] = await Promise.all([
-        sb.from('profiles').select('nombre, rol').eq('id', uid).single(),
+        sb.from('profiles').select('nombre, rol, es_revendedor').eq('id', uid).single(),
         sb.from('wallets').select('balance_cents').eq('user_id', uid).single(),
       ])
       if (uid !== uidActual) return   // la sesión cambió mientras consultábamos
 
-      const perfil = p.data as { nombre: string; rol: 'CLIENTE' | 'ADMIN' } | null
+      const perfil = p.data as { nombre: string; rol: 'CLIENTE' | 'ADMIN'; es_revendedor: boolean } | null
       const wallet = w.data as { balance_cents: number } | null
       emitir({
         nombre: perfil?.nombre ?? '',
         rol: perfil?.rol ?? 'CLIENTE',
+        esRevendedor: perfil?.es_revendedor ?? false,
+        ganancia: perfil?.es_revendedor ? estado.ganancia : null,
         saldo: wallet?.balance_cents ?? 0,
       })
       void contarCarrito(uid)
+      if (perfil?.es_revendedor) void cargarGanancia(uid)
     } catch {
       // Un fallo de red no puede dejar la interfaz congelada en el skeleton.
       emitir({ cargando: false })
@@ -110,6 +128,9 @@ function arrancar() {
 
   window.addEventListener('carrito-cambio', () => {
     if (uidActual) void contarCarrito(uidActual)
+  })
+  window.addEventListener('ganancia-cambio', () => {
+    if (uidActual) void cargarGanancia(uidActual)
   })
 }
 

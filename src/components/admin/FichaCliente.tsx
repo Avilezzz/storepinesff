@@ -5,8 +5,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Wallet, Mail, MessageCircle, Package, Receipt,
-  Bell, ShoppingBag, AlertTriangle,
+  Bell, ShoppingBag, AlertTriangle, BadgeDollarSign, Loader2,
 } from 'lucide-react'
+import { toast } from 'sonner'
+import { supabaseBrowser } from '@/lib/supabase-client'
 import { usd, fecha } from '@/lib/format'
 import Avatar from '../ui/Avatar'
 import ImagenProducto from '../ImagenProducto'
@@ -16,7 +18,7 @@ import ModalCorreo from './ModalCorreo'
 export type Cliente = {
   perfil: {
     id: string; nombre: string; email: string; telefono: string
-    rol: 'CLIENTE' | 'ADMIN'; activo: boolean; created_at: string; saldo_cents: number
+    rol: 'CLIENTE' | 'ADMIN'; activo: boolean; es_revendedor: boolean; created_at: string; saldo_cents: number
   }
   resumen: {
     gastado_cents: number; ordenes: number; pines: number
@@ -41,6 +43,7 @@ export default function FichaCliente({ cliente }: { cliente: Cliente }) {
   const router = useRouter()
   const [ajustando, setAjustando] = useState(false)
   const [escribiendo, setEscribiendo] = useState(false)
+  const [cambiandoTipo, setCambiandoTipo] = useState(false)
 
   const { perfil: p, resumen: r } = cliente
   const base = { id: p.id, nombre: p.nombre, email: p.email, saldo_cents: p.saldo_cents }
@@ -52,6 +55,14 @@ export default function FichaCliente({ cliente }: { cliente: Cliente }) {
 
   // La barra del ranking se mide contra el producto que más gasto acumula.
   const tope = cliente.productos[0]?.gastado_cents ?? 1
+  async function cambiarRevendedor() {
+    setCambiandoTipo(true)
+    const { error } = await supabaseBrowser().from('profiles').update({ es_revendedor: !p.es_revendedor }).eq('id', p.id).select('id').single()
+    setCambiandoTipo(false)
+    if (error) return toast.error('No se pudo cambiar el tipo de cuenta.')
+    toast.success(p.es_revendedor ? 'Cuenta de revendedor desactivada' : 'Cuenta habilitada como revendedor')
+    router.refresh()
+  }
 
   return (
     <>
@@ -64,6 +75,7 @@ export default function FichaCliente({ cliente }: { cliente: Cliente }) {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-lg font-semibold tracking-tight">{p.nombre}</h1>
               {p.rol === 'ADMIN' && <span className="chip bg-marca/12 text-marca">Admin</span>}
+              {p.es_revendedor && <span className="chip bg-ok/12 text-ok">Revendedor</span>}
               {!p.activo && <span className="chip bg-error/12 text-error">Inactivo</span>}
             </div>
             <p className="truncate text-sm text-tenue">{p.email}</p>
@@ -79,6 +91,9 @@ export default function FichaCliente({ cliente }: { cliente: Cliente }) {
           </button>
           <button onClick={() => setEscribiendo(true)} className="btn btn-suave flex-1 sm:flex-none">
             <Mail size={15} /> Escribir
+          </button>
+          <button onClick={cambiarRevendedor} disabled={cambiandoTipo} className={`btn flex-1 sm:flex-none ${p.es_revendedor ? 'btn-suave text-error' : 'btn-primario'}`}>
+            {cambiandoTipo ? <Loader2 size={15} className="animate-spin" /> : <BadgeDollarSign size={15} />}{p.es_revendedor ? 'Quitar revendedor' : 'Hacer revendedor'}
           </button>
           {tel && (
             <a href={`https://wa.me/593${tel.replace(/^0|^\+593/, '')}`}

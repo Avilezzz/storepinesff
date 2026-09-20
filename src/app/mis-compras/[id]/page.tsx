@@ -29,6 +29,8 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
 
   const { data: { user } } = await sb.auth.getUser()
   if (!user) redirect('/login')
+  const perfilResult = await sb.from('profiles').select('es_revendedor').eq('id', user.id).maybeSingle()
+  const perfil = perfilResult?.data as { es_revendedor: boolean } | null | undefined
 
   const { data } = await sb
     .from('orders')
@@ -65,6 +67,10 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
     throw new Error('No se pudieron cargar los pines. Actualiza la página; no vuelvas a pagar.')
   }
   const pines = (pinesResult?.data ?? []) as Pin[]
+  const { data: ventasRegistradasRaw } = perfil?.es_revendedor && pines.length
+    ? await sb.from('reseller_sales').select('pin_code_id').eq('user_id', user.id).in('pin_code_id', pines.map(p => p.id))
+    : { data: [] }
+  const ventasRegistradas = new Set((ventasRegistradasRaw ?? []).map(v => v.pin_code_id))
   const config = configResult?.data?.value as { url?: string; url_embed?: string } | undefined
   const urlExterna = config?.url || 'https://redeem.wik.do/'
   const urlEmbed = config?.url_embed || urlExterna
@@ -150,6 +156,7 @@ export default async function DetalleOrden({ params }: { params: Promise<{ id: s
         <>
           <h2 className="subtitulo mb-3 mt-7">Tus pines</h2>
           <PinesEntregados pines={pines}
+            esRevendedor={perfil?.es_revendedor ?? false} ventasRegistradas={ventasRegistradas}
             reclamados={new Set((reclamosResult?.data ?? []).map((r) => r.pin_code_id))}
             urlEmbed={urlEmbed} urlExterna={urlExterna} />
         </>

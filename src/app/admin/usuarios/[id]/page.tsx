@@ -11,10 +11,14 @@ export default async function DetalleCliente({ params }: { params: Promise<{ id:
   // Toda la ficha viene en una sola llamada: perfil, métricas, ranking de
   // productos, compras, movimientos, recargas y correos. La misma función
   // servirá el día que esto lo lea una IA para recomendar.
-  const { data } = await sb.rpc('fn_admin_cliente', { p_id: id })
+  const [{ data }, { data: perfilExtra }] = await Promise.all([
+    sb.rpc('fn_admin_cliente', { p_id: id }),
+    sb.from('profiles').select('es_revendedor').eq('id', id).single(),
+  ])
 
   const cliente = data as Cliente | null
   if (!cliente?.perfil) notFound()
+  cliente.perfil.es_revendedor = perfilExtra?.es_revendedor ?? false
 
   return <FichaCliente cliente={cliente} />
 }

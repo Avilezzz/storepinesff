@@ -517,7 +517,7 @@ function Muestra({
     <label className="flex items-center gap-2 rounded-lg border border-linea bg-panel px-2 py-1.5">
       <input
         type="color"
-        value={valor || '#c2410c'}
+        value={valor || '#1d4ed8'}
         onChange={(e) => onCambio(e.target.value)}
         className="size-7 cursor-pointer rounded border-0 bg-transparent p-0"
         aria-label={`Color ${txt.toLowerCase()}`}

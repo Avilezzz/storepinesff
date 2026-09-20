@@ -13,9 +13,9 @@
   --color-linea:       #dbe0e8;   /* bordes nítidos                */
   --color-tenue:       #475467;   /* texto secundario nítido       */
   --color-fuerte:      #0b0f19;   /* texto principal de alto contraste */
-  --color-marca:       #c2410c;   /* naranja de marca              */
-  --color-marca2:      #b91c1c;
-  --color-sobre-marca: #ffffff;   /* texto encima del naranja      */
+  --color-marca:       #1d4ed8;   /* azul eléctrico de marca       */
+  --color-marca2:      #6d28d9;   /* violeta para degradados       */
+  --color-sobre-marca: #ffffff;   /* texto encima del azul         */
   --color-ok:          #15803d;
   --color-alerta:      #a16207;
   --color-error:       #b91c1c;
@@ -24,8 +24,8 @@
   --sombra-flotante: 0 4px 6px -1px rgb(15 20 32 / 0.07), 0 10px 24px -6px rgb(15 20 32 / 0.14);
 }
 
-/* En oscuro el naranja puede ser más vivo: sobre fondo negro contrasta de
-   sobra, mientras que en claro tuvo que oscurecerse para poder leerse. */
+/* En oscuro el azul puede ser más luminoso: sobre fondo negro contrasta de
+   sobra, mientras que en claro necesita un tono más profundo. */
 :root[data-tema='oscuro'] {
   --color-base:        #090b0f;
   --color-panel:       #11141b;
@@ -33,9 +33,9 @@
   --color-linea:       #242938;
   --color-tenue:       #94a3b8;   /* slate-400 claro y legible */
   --color-fuerte:      #f8fafc;   /* blanco nítido             */
-  --color-marca:       #ff7a18;
-  --color-marca2:      #ff4d4d;
-  --color-sobre-marca: #090b0f;
+  --color-marca:       #38bdf8;
+  --color-marca2:      #818cf8;
+  --color-sobre-marca: #07111f;
   --color-ok:          #22c55e;
   --color-alerta:      #f59e0b;
   --color-error:       #ef4444;

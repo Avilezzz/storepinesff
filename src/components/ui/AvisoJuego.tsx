@@ -26,7 +26,7 @@ export type TipoAviso = 'compra' | 'premio' | 'stock' | 'alerta'
 const ESTILO: Record<TipoAviso, {
   etiqueta: string; Icono: LucideIcon; claro: string; vivo: string; chispas: boolean
 }> = {
-  compra: { etiqueta: 'Entregado',   Icono: Sparkles,      claro: '#ffd27d', vivo: '#ff7a18', chispas: true  },
+  compra: { etiqueta: 'Entregado',   Icono: Sparkles,      claro: '#93c5fd', vivo: '#2563eb', chispas: true  },
   premio: { etiqueta: 'Saldo nuevo', Icono: Coins,         claro: '#86efac', vivo: '#16a34a', chispas: true  },
   stock:  { etiqueta: 'Disponible',  Icono: Zap,           claro: '#7dd3fc', vivo: '#0284c7', chispas: true  },
   alerta: { etiqueta: 'Atención',    Icono: TriangleAlert, claro: '#fcd34d', vivo: '#dc2626', chispas: false },

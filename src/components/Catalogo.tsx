@@ -168,7 +168,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                   <p className={`cifra mt-1 text-xs font-semibold ${agotado ? 'text-error' : s <= 5 ? 'text-alerta' : 'text-ok'}`}>
                     Stock: {s}
                   </p>
-                  <p className="cifra mt-1 text-2xl font-bold text-marca">{usd(p.precio_cents)}</p>
+                  <p className="cifra mt-2 inline-flex rounded-md bg-[#0b1220] px-2.5 py-1 text-2xl font-bold text-white shadow-sm">{usd(p.precio_cents)}</p>
                 </div>
 
                 {agotado ? (

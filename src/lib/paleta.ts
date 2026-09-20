@@ -11,7 +11,7 @@
  * hace suya a una imagen es el color vivo, aunque ocupe poco. Por eso cada
  * píxel vota con un peso: cuanto más saturado y menos apagado, más pesa su
  * voto. Los votos se agrupan por tono, no por color exacto, así los mil
- * naranjas distintos de un degradado suman a un mismo candidato en vez de
+ * tonos cálidos distintos de un degradado suman a un mismo candidato en vez de
  * repartirse y perder contra el gris.
  */
 
@@ -24,7 +24,7 @@ export type Paleta = { a: string; b: string }
 const LADO = 160
 
 /** Tonos en los que se reparten los votos. 24 casillas de 15°: suficiente para
- *  separar un naranja de un rojo, sin trocear un mismo degradado. */
+ *  separar colores cercanos, sin trocear un mismo degradado. */
 const CASILLAS = 24
 
 /** Separación mínima de tono entre los dos colores elegidos. Por debajo de

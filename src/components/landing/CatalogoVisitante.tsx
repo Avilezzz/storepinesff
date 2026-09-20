@@ -60,7 +60,7 @@ export default function CatalogoVisitante({ productos }: { productos: Producto[]
                   <p className={`cifra mt-1 text-xs font-semibold ${p.stock_disponible > 0 ? 'text-ok' : 'text-error'}`}>
                     Stock: {p.stock_disponible}
                   </p>
-                  <p className="cifra mt-1 text-2xl font-bold text-marca">{usd(p.precio_cents)}</p>
+                  <p className="cifra mt-2 inline-flex rounded-md bg-[#0b1220] px-2.5 py-1 text-2xl font-bold text-white shadow-sm">{usd(p.precio_cents)}</p>
                 </div>
 
                 <Link

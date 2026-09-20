@@ -73,7 +73,7 @@ export default function HeroVisitante() {
           <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3.5">
             <Link
               href="/registro"
-              className="btn btn-primario w-full justify-center shadow-lg shadow-orange-500/25 sm:w-auto"
+              className="btn btn-primario w-full justify-center shadow-lg shadow-blue-500/25 sm:w-auto"
             >
               Crear cuenta gratis <ArrowRight size={16} />
             </Link>

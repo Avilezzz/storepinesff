@@ -1,8 +1,8 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Check, X, Plus, Eye, EyeOff, Loader2, ImagePlus, Trash2 } from 'lucide-react'
+import { Box, Check, ImagePlus, Loader2, PackagePlus, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { usd, aCentavos, mensajeError } from '@/lib/format'
@@ -10,11 +10,8 @@ import ImagenProducto from '@/components/ImagenProducto'
 import { actualizarProducto as guardarProducto } from '@/app/admin/productos/actions'
 
 async function actualizarProducto(...args: Parameters<typeof guardarProducto>) {
-  try {
-    return await guardarProducto(...args)
-  } catch {
-    return { error: { message: 'No se pudo confirmar el guardado. Recarga la página y revisa el producto antes de volver a intentarlo.' } }
-  }
+  try { return await guardarProducto(...args) }
+  catch { return { error: { message: 'No se pudo confirmar el guardado. Recarga la página y vuelve a intentarlo.' } } }
 }
 
 export type Producto = {
@@ -27,32 +24,22 @@ const BUCKET = 'productos'
 const TIPOS = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
 const MAX_BYTES = 2 * 1024 * 1024
 
-/** Sube el archivo al bucket público y devuelve su URL, o null si algo falló. */
-async function subirImagen(
-  sb: ReturnType<typeof supabaseBrowser>, productId: string, file: File,
-): Promise<string | null> {
-  if (!TIPOS.includes(file.type)) {
-    toast.error('Formato no admitido. Usa JPG, PNG, WebP o AVIF.')
-    return null
-  }
-  if (file.size > MAX_BYTES) {
-    toast.error('La imagen pesa más de 2 MB. Comprímela antes de subirla.')
-    return null
-  }
+function validarArchivo(file: File) {
+  if (!TIPOS.includes(file.type)) return 'Formato no admitido. Usa JPG, PNG, WebP o AVIF.'
+  if (file.size > MAX_BYTES) return 'La imagen pesa más de 2 MB. Comprímela antes de subirla.'
+  return null
+}
 
-  // Ruta nueva en cada subida: así ninguna CDN sirve la imagen vieja en caché.
+async function subirImagen(sb: ReturnType<typeof supabaseBrowser>, id: string, file: File) {
+  const validacion = validarArchivo(file)
+  if (validacion) { toast.error(validacion); return null }
   const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
-  const ruta = `${productId}/${Date.now()}.${ext}`
-
+  const ruta = `${id}/${Date.now()}.${ext}`
   const { error } = await sb.storage.from(BUCKET).upload(ruta, file, { cacheControl: '31536000' })
-  if (error) {
-    toast.error(mensajeError(error.message))
-    return null
-  }
+  if (error) { toast.error(mensajeError(error.message)); return null }
   return sb.storage.from(BUCKET).getPublicUrl(ruta).data.publicUrl
 }
 
-/** Borra del bucket la imagen anterior; si no se puede, solo queda huérfana. */
 async function borrarAnterior(sb: ReturnType<typeof supabaseBrowser>, url: string | null) {
   const ruta = url?.split(`/${BUCKET}/`)[1]
   if (ruta) await sb.storage.from(BUCKET).remove([decodeURIComponent(ruta)])
@@ -60,237 +47,167 @@ async function borrarAnterior(sb: ReturnType<typeof supabaseBrowser>, url: strin
 
 export default function AdminProductos({ productos }: { productos: Producto[] }) {
   const router = useRouter()
-  const [editando, setEditando] = useState<string | null>(null)
-  const [precio, setPrecio] = useState('')
-  const [nuevo, setNuevo] = useState(false)
+  const [editando, setEditando] = useState<Producto | null>(null)
+  const [creando, setCreando] = useState(false)
+  const visibles = productos.filter((p) => p.activo).length
+  const agotados = productos.filter((p) => p.stock_disponible === 0).length
 
-  async function guardarPrecio(p: Producto) {
-    const cents = aCentavos(precio)
-    if (cents === null || cents <= 0) return toast.error('Precio inválido.')
-    if (cents === p.precio_cents) return setEditando(null)
+  return <>
+    <header className="mb-5 flex items-start justify-between gap-3">
+      <div><h1 className="titulo">Productos</h1>
+        <p className="mt-1 text-sm text-tenue">Toca una tarjeta para cambiar precio, imagen o visibilidad.</p></div>
+      <button onClick={() => setCreando(true)} className="btn btn-primario shrink-0">
+        <Plus size={16} /><span className="hidden sm:inline">Nuevo producto</span><span className="sm:hidden">Nuevo</span>
+      </button>
+    </header>
 
-    const { error } = await actualizarProducto(p.id, { precio_cents: cents })
-    if (error) return toast.error(mensajeError(error.message))
+    <div className="mb-4 grid grid-cols-3 gap-2 sm:max-w-lg sm:gap-3">
+      <Resumen valor={productos.length} etiqueta="Productos" />
+      <Resumen valor={visibles} etiqueta="Visibles" />
+      <Resumen valor={agotados} etiqueta="Agotados" alerta={agotados > 0} />
+    </div>
 
-    setEditando(null)
-    toast.success(`${p.nombre} ahora cuesta ${usd(cents)}`)
-    router.refresh()
-  }
+    {productos.length === 0 ? <div className="tarjeta flex flex-col items-center px-6 py-14 text-center">
+      <Box size={28} className="mb-3 text-tenue" /><p className="font-medium">Aún no hay productos</p>
+      <p className="mt-1 text-sm text-tenue">Crea el primero para empezar a vender.</p>
+    </div> : <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {productos.map((p) => <button key={p.id} onClick={() => setEditando(p)}
+        className="tarjeta group overflow-hidden text-left transition hover:border-marca/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca">
+        <div className="flex gap-3 p-3.5">
+          <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-xl border border-linea bg-panel2">
+            <ImagenProducto url={p.imagen_url} alt={p.nombre} sizes="80px" iconoSize={24} className="h-full w-full" />
+            {!p.activo && <span className="absolute inset-x-1 bottom-1 rounded bg-base/90 px-1 py-0.5 text-center text-[10px] font-semibold text-tenue">OCULTO</span>}
+          </div>
+          <div className="min-w-0 flex-1 py-0.5">
+            <div className="flex items-start justify-between gap-2"><div className="min-w-0">
+              <p className="truncate font-semibold">{p.nombre}</p>
+              <p className="mt-0.5 text-xs text-tenue">{p.diamantes.toLocaleString('es-EC')} diamantes</p>
+            </div><span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-panel2 text-tenue transition group-hover:text-marca"><Pencil size={14} /></span></div>
+            <p className="cifra mt-3 text-xl font-semibold text-marca">{usd(p.precio_cents)}</p>
+            <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+              <span className={p.activo ? 'text-ok' : 'text-tenue'}>{p.activo ? 'Publicado' : 'Oculto'}</span>
+              <span className={`cifra font-medium ${p.stock_disponible === 0 ? 'text-error' : p.stock_disponible <= 5 ? 'text-alerta' : 'text-tenue'}`}>{p.stock_disponible} en stock</span>
+            </div>
+          </div>
+        </div>
+      </button>)}
+    </div>}
 
-  async function alternar(p: Producto) {
-    const { error } = await actualizarProducto(p.id, { activo: !p.activo })
-    if (error) return toast.error(mensajeError(error.message))
-    toast(p.activo ? `${p.nombre} oculto de la tienda` : `${p.nombre} publicado`)
-    router.refresh()
-  }
-
-  return (
-    <>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="titulo">Productos</h1>
-        <button onClick={() => setNuevo((v) => !v)} className="btn btn-suave">
-          {nuevo ? <><X size={15} /> Cancelar</> : <><Plus size={15} /> Nuevo</>}
-        </button>
-      </div>
-
-      {nuevo && <FormNuevo onListo={() => { setNuevo(false); router.refresh() }} />}
-
-      <div className="tarjeta overflow-x-auto">
-        <table className="w-full min-w-md text-sm">
-          <thead>
-            <tr className="border-b border-linea">
-              <th className="etiqueta p-3 text-left">Imagen</th>
-              <th className="etiqueta p-3 text-left">Producto</th>
-              <th className="etiqueta p-3 text-right">Precio</th>
-              <th className="etiqueta p-3 text-right">Stock</th>
-              <th className="etiqueta p-3 text-right">Visible</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-linea">
-            {productos.map((p) => (
-              <tr key={p.id}>
-                <td className="p-3">
-                  <CeldaImagen p={p} />
-                </td>
-
-                <td className="p-3">
-                  <p className="font-medium">{p.nombre}</p>
-                  <p className="cifra text-xs text-tenue">{p.diamantes.toLocaleString('es-EC')} diamantes</p>
-                </td>
-
-                <td className="p-3 text-right">
-                  {editando === p.id ? (
-                    <div className="flex items-center justify-end gap-1">
-                      <input autoFocus className="campo w-20 py-1 text-right text-sm" value={precio}
-                        onChange={(e) => setPrecio(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') guardarPrecio(p)
-                          if (e.key === 'Escape') setEditando(null)
-                        }} />
-                      <button onClick={() => guardarPrecio(p)} className="btn-icono" aria-label="Guardar">
-                        <Check size={15} className="text-ok" />
-                      </button>
-                      <button onClick={() => setEditando(null)} className="btn-icono" aria-label="Cancelar">
-                        <X size={15} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => { setEditando(p.id); setPrecio((p.precio_cents / 100).toFixed(2)) }}
-                      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 transition hover:bg-panel2">
-                      <span className="cifra font-semibold">{usd(p.precio_cents)}</span>
-                      <Pencil size={12} className="text-tenue" />
-                    </button>
-                  )}
-                </td>
-
-                <td className={`cifra p-3 text-right font-semibold ${
-                  p.stock_disponible === 0 ? 'text-error' : p.stock_disponible <= 5 ? 'text-alerta' : ''}`}>
-                  {p.stock_disponible}
-                </td>
-
-                <td className="p-3 text-right">
-                  <button onClick={() => alternar(p)} className={`btn-icono ${p.activo ? 'activo' : ''}`}
-                    aria-label={p.activo ? 'Ocultar de la tienda' : 'Publicar en la tienda'}
-                    title={p.activo ? 'Publicado — clic para ocultar' : 'Oculto — clic para publicar'}>
-                    {p.activo ? <Eye size={16} /> : <EyeOff size={16} />}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  )
+    {editando && <ModalEditar producto={editando} onCerrar={() => setEditando(null)} onListo={() => { setEditando(null); router.refresh() }} />}
+    {creando && <ModalNuevo onCerrar={() => setCreando(false)} onListo={() => { setCreando(false); router.refresh() }} />}
+  </>
 }
 
-/** Miniatura de la card: se toca para reemplazarla por otra imagen. */
-function CeldaImagen({ p }: { p: Producto }) {
-  const sb = supabaseBrowser()
-  const router = useRouter()
+function Resumen({ valor, etiqueta, alerta = false }: { valor: number; etiqueta: string; alerta?: boolean }) {
+  return <div className="tarjeta px-3 py-3 sm:px-4"><p className={`cifra text-xl font-semibold ${alerta ? 'text-alerta' : ''}`}>{valor}</p><p className="mt-0.5 truncate text-xs text-tenue">{etiqueta}</p></div>
+}
+
+function ModalBase({ titulo, subtitulo, onCerrar, children }: { titulo: string; subtitulo: string; onCerrar: () => void; children: React.ReactNode }) {
+  const cerrar = useRef(onCerrar); cerrar.current = onCerrar
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') cerrar.current() }
+    document.addEventListener('keydown', esc); document.body.style.overflow = 'hidden'
+    return () => { document.removeEventListener('keydown', esc); document.body.style.overflow = '' }
+  }, [])
+  return <div role="dialog" aria-modal="true" aria-label={titulo} onClick={onCerrar}
+    className="velo fixed inset-0 z-100 flex items-end justify-center overflow-y-auto sm:items-center sm:p-4">
+    <div onClick={(e) => e.stopPropagation()} className="max-h-[94vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-linea bg-panel shadow-2xl sm:max-h-[90vh] sm:rounded-2xl">
+      <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-linea bg-panel px-4 py-4 sm:px-5">
+        <div><h2 className="subtitulo">{titulo}</h2><p className="mt-0.5 text-xs text-tenue">{subtitulo}</p></div>
+        <button onClick={onCerrar} className="btn-icono -mr-1 -mt-1" aria-label="Cerrar"><X size={18} /></button>
+      </div>{children}
+    </div>
+  </div>
+}
+
+function SelectorImagen({ actual, archivo, onArchivo, quitar, onQuitar }: {
+  actual: string | null; archivo: File | null; onArchivo: (file: File | null) => void; quitar: boolean; onQuitar: () => void
+}) {
   const entrada = useRef<HTMLInputElement>(null)
-  const [ocupado, setOcupado] = useState(false)
-
-  async function elegir(file: File | undefined) {
+  const [preview, setPreview] = useState<string | null>(null)
+  useEffect(() => {
+    if (!archivo) { setPreview(null); return }
+    const url = URL.createObjectURL(archivo); setPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [archivo])
+  const mostrada = quitar ? null : preview ?? actual
+  function elegir(file?: File) {
     if (!file) return
-    setOcupado(true)
-
-    const url = await subirImagen(sb, p.id, file)
-    if (url) {
-      const { error } = await actualizarProducto(p.id, { imagen_url: url })
-      if (error) toast.error(mensajeError(error.message))
-      else {
-        await borrarAnterior(sb, p.imagen_url)
-        toast.success(`Imagen de ${p.nombre} actualizada`)
-        router.refresh()
-      }
-    }
-
-    setOcupado(false)
-    if (entrada.current) entrada.current.value = ''   // permite reelegir el mismo archivo
+    const error = validarArchivo(file); if (error) return toast.error(error)
+    onArchivo(file)
   }
-
-  async function quitar() {
-    setOcupado(true)
-    const { error } = await actualizarProducto(p.id, { imagen_url: null })
-    if (error) toast.error(mensajeError(error.message))
-    else {
-      await borrarAnterior(sb, p.imagen_url)
-      toast(`${p.nombre} vuelve al icono por defecto`)
-      router.refresh()
-    }
-    setOcupado(false)
-  }
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <input ref={entrada} type="file" accept={TIPOS.join(',')} className="hidden"
-        onChange={(e) => elegir(e.target.files?.[0])} />
-
-      <button onClick={() => entrada.current?.click()} disabled={ocupado}
-        className="group relative block h-16 w-13 shrink-0 overflow-hidden rounded-lg border border-linea transition hover:border-marca disabled:opacity-50"
-        title={p.imagen_url ? 'Cambiar imagen' : 'Subir imagen'}>
-        <ImagenProducto url={p.imagen_url} alt={p.nombre} sizes="64px" iconoSize={18}
-          className="h-full w-full" />
-        <span className={`absolute inset-0 grid place-items-center bg-base/70 transition ${
-          ocupado ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-          {ocupado ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-        </span>
-      </button>
-
-      {p.imagen_url && (
-        <button onClick={quitar} disabled={ocupado} className="btn-icono" aria-label="Quitar imagen"
-          title="Quitar imagen">
-          <Trash2 size={14} />
-        </button>
-      )}
+  return <div><label className="mb-1.5 block text-xs font-medium text-tenue">Imagen del producto</label>
+    <div className="flex items-center gap-3 rounded-xl border border-linea bg-panel2 p-3">
+      <ImagenProducto url={mostrada} alt="Vista previa" sizes="72px" iconoSize={24} className="h-20 w-18 shrink-0 rounded-lg border border-linea" />
+      <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{archivo?.name ?? (mostrada ? 'Imagen actual' : 'Sin imagen')}</p>
+        <p className="mt-0.5 text-xs text-tenue">JPG, PNG, WebP o AVIF · máximo 2 MB</p>
+        <div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => entrada.current?.click()} className="btn btn-suave px-3 py-1.5 text-xs"><ImagePlus size={14} />{mostrada ? 'Cambiar' : 'Elegir'}</button>
+          {(actual || archivo) && !quitar && <button type="button" onClick={onQuitar} className="btn px-2 py-1.5 text-xs text-error"><Trash2 size={14} />Quitar</button>}</div>
+      </div><input ref={entrada} type="file" accept={TIPOS.join(',')} className="hidden" onChange={(e) => { elegir(e.target.files?.[0]); e.currentTarget.value = '' }} />
     </div>
-  )
+  </div>
 }
 
-function FormNuevo({ onListo }: { onListo: () => void }) {
+function ModalEditar({ producto: p, onCerrar, onListo }: { producto: Producto; onCerrar: () => void; onListo: () => void }) {
   const sb = supabaseBrowser()
-  const [f, setF] = useState({ diamantes: '', precio: '' })
+  const [precio, setPrecio] = useState((p.precio_cents / 100).toFixed(2))
+  const [activo, setActivo] = useState(p.activo)
   const [archivo, setArchivo] = useState<File | null>(null)
+  const [quitarImagen, setQuitarImagen] = useState(false)
   const [guardando, setGuardando] = useState(false)
-
-  async function crear() {
-    const d = parseInt(f.diamantes, 10)
-    const cents = aCentavos(f.precio)
-    if (!d || d <= 0)                 return toast.error('Cantidad de diamantes inválida.')
-    if (cents === null || cents <= 0) return toast.error('Precio inválido.')
-
+  async function guardar() {
+    const cents = aCentavos(precio); if (cents === null || cents <= 0) return toast.error('Precio inválido.')
     setGuardando(true)
-    const { data, error } = await sb.from('products').insert({
-      slug: `${d}-diamantes`,
-      nombre: `${d} Diamantes`,
-      diamantes: d,
-      precio_cents: cents,
-      descripcion: `Pin de ${d} diamantes para Free Fire`,
-      orden: d,
-    }).select('id').single()
-
-    // La imagen es opcional: si falla la subida el producto ya quedó creado y
-    // se le puede poner la card después desde la tabla.
-    if (!error && archivo) {
-      const id = (data as { id: string }).id
-      const url = await subirImagen(sb, id, archivo)
-      if (url) {
-        const { error: imagenError } = await actualizarProducto(id, { imagen_url: url })
-        if (imagenError) toast.error(`Producto creado, pero la imagen no se guardó: ${mensajeError(imagenError.message)}`)
-      }
-    }
-    setGuardando(false)
-
+    let nuevaUrl: string | null | undefined
+    if (archivo) nuevaUrl = await subirImagen(sb, p.id, archivo); else if (quitarImagen) nuevaUrl = null
+    if (archivo && !nuevaUrl) { setGuardando(false); return }
+    const cambios: { precio_cents?: number; activo?: boolean; imagen_url?: string | null } = {}
+    if (cents !== p.precio_cents) cambios.precio_cents = cents
+    if (activo !== p.activo) cambios.activo = activo
+    if (nuevaUrl !== undefined) cambios.imagen_url = nuevaUrl
+    if (!Object.keys(cambios).length) { setGuardando(false); return onCerrar() }
+    const { error } = await actualizarProducto(p.id, cambios); setGuardando(false)
     if (error) return toast.error(mensajeError(error.message))
-    toast.success(`${d} Diamantes creado`)
-    onListo()
+    if (nuevaUrl !== undefined && p.imagen_url) await borrarAnterior(sb, p.imagen_url)
+    toast.success(`${p.nombre} actualizado`); onListo()
   }
-
-  return (
-    <div className="tarjeta mb-3 flex flex-wrap items-end gap-3 p-4">
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-tenue">Diamantes</label>
-        <input className="campo w-28" inputMode="numeric" placeholder="110"
-          value={f.diamantes} onChange={(e) => setF({ ...f, diamantes: e.target.value })} />
-      </div>
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-tenue">Precio (USD)</label>
-        <input className="campo w-28" inputMode="decimal" placeholder="1.50"
-          value={f.precio} onChange={(e) => setF({ ...f, precio: e.target.value })} />
-      </div>
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-tenue">Imagen (opcional)</label>
-        <label className="btn btn-suave">
-          <ImagePlus size={15} />
-          <span className="max-w-40 truncate">{archivo ? archivo.name : 'Elegir archivo'}</span>
-          <input type="file" accept={TIPOS.join(',')} className="hidden"
-            onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
-        </label>
-      </div>
-      <button onClick={crear} disabled={guardando} className="btn btn-primario">
-        {guardando ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Crear
+  return <ModalBase titulo="Editar producto" subtitulo={p.nombre} onCerrar={guardando ? () => {} : onCerrar}>
+    <div className="space-y-5 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
+      <SelectorImagen actual={p.imagen_url} archivo={archivo} onArchivo={(f) => { setArchivo(f); setQuitarImagen(false) }} quitar={quitarImagen} onQuitar={() => { setArchivo(null); setQuitarImagen(true) }} />
+      <label className="block"><span className="mb-1.5 block text-xs font-medium text-tenue">Precio (USD)</span>
+        <input autoFocus className="campo cifra" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardar()} /></label>
+      <button type="button" aria-pressed={activo} onClick={() => setActivo((v) => !v)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-linea bg-panel2 p-3.5 text-left">
+        <span><span className="block text-sm font-medium">Visible en la tienda</span><span className="mt-0.5 block text-xs text-tenue">{activo ? 'Los clientes pueden comprarlo.' : 'No aparecerá en el catálogo.'}</span></span>
+        <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${activo ? 'bg-marca' : 'bg-linea'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${activo ? 'left-6' : 'left-1'}`} /></span>
       </button>
+      <div className="flex items-center justify-between rounded-xl border border-linea px-3.5 py-3 text-sm"><span className="text-tenue">Stock disponible</span><span className="cifra font-semibold">{p.stock_disponible}</span></div>
+      <p className="-mt-3 text-xs text-tenue">El stock se administra cargando códigos desde la sección Códigos.</p>
+      <div className="flex gap-2 pt-1"><button onClick={onCerrar} disabled={guardando} className="btn btn-suave flex-1">Cancelar</button><button onClick={guardar} disabled={guardando} className="btn btn-primario flex-1">{guardando ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}{guardando ? 'Guardando…' : 'Guardar cambios'}</button></div>
     </div>
-  )
+  </ModalBase>
+}
+
+function ModalNuevo({ onCerrar, onListo }: { onCerrar: () => void; onListo: () => void }) {
+  const sb = supabaseBrowser()
+  const [diamantes, setDiamantes] = useState(''); const [precio, setPrecio] = useState('')
+  const [archivo, setArchivo] = useState<File | null>(null); const [guardando, setGuardando] = useState(false)
+  async function crear() {
+    const d = parseInt(diamantes, 10); const cents = aCentavos(precio)
+    if (!d || d <= 0) return toast.error('Cantidad de diamantes inválida.')
+    if (cents === null || cents <= 0) return toast.error('Precio inválido.')
+    setGuardando(true)
+    const { data, error } = await sb.from('products').insert({ slug: `${d}-diamantes`, nombre: `${d} Diamantes`, diamantes: d, precio_cents: cents, descripcion: `Pin de ${d} diamantes para Free Fire`, orden: d }).select('id').single()
+    if (error) { setGuardando(false); return toast.error(mensajeError(error.message)) }
+    if (archivo) { const id = (data as { id: string }).id; const url = await subirImagen(sb, id, archivo); if (url) { const { error: e } = await actualizarProducto(id, { imagen_url: url }); if (e) toast.error(`Producto creado, pero la imagen no se guardó: ${mensajeError(e.message)}`) } }
+    setGuardando(false); toast.success(`${d} Diamantes creado`); onListo()
+  }
+  return <ModalBase titulo="Nuevo producto" subtitulo="Añade una nueva opción al catálogo" onCerrar={guardando ? () => {} : onCerrar}>
+    <div className="space-y-5 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
+      <SelectorImagen actual={null} archivo={archivo} onArchivo={setArchivo} quitar={false} onQuitar={() => setArchivo(null)} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><label><span className="mb-1.5 block text-xs font-medium text-tenue">Cantidad de diamantes</span><input autoFocus className="campo cifra" inputMode="numeric" placeholder="110" value={diamantes} onChange={(e) => setDiamantes(e.target.value.replace(/\D/g, ''))} /></label>
+        <label><span className="mb-1.5 block text-xs font-medium text-tenue">Precio (USD)</span><input className="campo cifra" inputMode="decimal" placeholder="1.50" value={precio} onChange={(e) => setPrecio(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && crear()} /></label></div>
+      <div className="rounded-xl border border-linea bg-panel2 p-3.5 text-sm text-tenue"><PackagePlus size={17} className="mb-2 text-marca" />El producto se crea sin stock. Después carga sus pines desde la sección Códigos.</div>
+      <div className="flex gap-2 pt-1"><button onClick={onCerrar} disabled={guardando} className="btn btn-suave flex-1">Cancelar</button><button onClick={crear} disabled={guardando} className="btn btn-primario flex-1">{guardando ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}{guardando ? 'Creando…' : 'Crear producto'}</button></div>
+    </div>
+  </ModalBase>
 }

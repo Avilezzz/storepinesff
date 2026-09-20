@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Gem, Loader2, Phone } from 'lucide-react'
+import { Loader2, MessageCircle, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { mensajeError } from '@/lib/format'
@@ -97,7 +97,7 @@ function Formulario() {
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
           <span className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-marca text-sobre-marca">
-            <Gem size={21} strokeWidth={2.4} />
+            <MessageCircle size={23} strokeWidth={2.4} aria-label="WhatsApp" />
           </span>
           <h1 className="titulo">Un dato más</h1>
           <p className="mt-1.5 text-sm leading-relaxed text-tenue">

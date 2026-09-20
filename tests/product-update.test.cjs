@@ -58,5 +58,5 @@ test('valida y guarda el título del producto', async () => {
   assert.ok((await f.update('product', { nombre: '   ' })).error)
   assert.ok((await f.update('product', { nombre: 'x'.repeat(81) })).error)
   assert.equal((await f.update('product', { nombre: '  Paquete semanal  ' })).error, null)
-  assert.equal(f.updates[0].nombre, 'Paquete semanal')
+  assert.equal(f.updates[0].nombre, 'PAQUETE SEMANAL')
 })

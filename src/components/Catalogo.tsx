@@ -164,7 +164,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
 
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 px-3 py-2 sm:px-4">
                 <div>
-                  <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-fuerte sm:text-base">{p.nombre}</h3>
+                  <h3 className="line-clamp-2 text-base font-bold uppercase leading-tight text-fuerte sm:text-lg">{p.nombre}</h3>
                   <p className={`cifra mt-1 text-xs font-semibold ${agotado ? 'text-error' : s <= 5 ? 'text-alerta' : 'text-ok'}`}>
                     Stock: {s}
                   </p>

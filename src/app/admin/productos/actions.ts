@@ -16,7 +16,7 @@ export async function actualizarProducto(id: string, cambios: Cambios) {
   if ('nombre' in cambios) {
     const nombre = cambios.nombre?.trim()
     if (!nombre || nombre.length > 80) return { error: { message: 'El título debe tener entre 1 y 80 caracteres.' } }
-    patch.nombre = nombre
+    patch.nombre = nombre.toLocaleUpperCase('es-EC')
   }
   if ('precio_cents' in cambios) {
     if (!Number.isSafeInteger(cambios.precio_cents) || cambios.precio_cents! <= 0)

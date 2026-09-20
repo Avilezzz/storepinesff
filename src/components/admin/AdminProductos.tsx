@@ -178,7 +178,7 @@ function ModalEditar({ producto: p, onCerrar, onListo }: { producto: Producto; o
     <div className="space-y-5 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
       <SelectorImagen actual={p.imagen_url} archivo={archivo} onArchivo={(f) => { setArchivo(f); setQuitarImagen(false) }} quitar={quitarImagen} onQuitar={() => { setArchivo(null); setQuitarImagen(true) }} />
       <label className="block"><span className="mb-1.5 block text-xs font-medium text-tenue">Título del producto</span>
-        <input autoFocus className="campo" maxLength={80} placeholder="Ej. 110 Diamantes" value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+        <input autoFocus className="campo uppercase" maxLength={80} placeholder="Ej. 110 DIAMANTES" value={nombre} onChange={(e) => setNombre(e.target.value.toLocaleUpperCase('es-EC'))} /></label>
       <label className="block"><span className="mb-1.5 block text-xs font-medium text-tenue">Precio (USD)</span>
         <input className="campo cifra" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardar()} /></label>
       <button type="button" aria-pressed={activo} onClick={() => setActivo((v) => !v)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-linea bg-panel2 p-3.5 text-left">
@@ -200,7 +200,7 @@ function ModalNuevo({ onCerrar, onListo }: { onCerrar: () => void; onListo: () =
     const d = parseInt(diamantes, 10); const cents = aCentavos(precio)
     if (!d || d <= 0) return toast.error('Cantidad de diamantes inválida.')
     if (cents === null || cents <= 0) return toast.error('Precio inválido.')
-    const titulo = nombre.trim() || `${d} Diamantes`
+    const titulo = (nombre.trim() || `${d} Diamantes`).toLocaleUpperCase('es-EC')
     if (titulo.length > 80) return toast.error('El título no puede superar 80 caracteres.')
     setGuardando(true)
     const { data, error } = await sb.from('products').insert({ slug: `${d}-diamantes`, nombre: titulo, diamantes: d, precio_cents: cents, descripcion: `Pin de ${d} diamantes para Free Fire`, orden: d }).select('id').single()
@@ -211,7 +211,7 @@ function ModalNuevo({ onCerrar, onListo }: { onCerrar: () => void; onListo: () =
   return <ModalBase titulo="Nuevo producto" subtitulo="Añade una nueva opción al catálogo" onCerrar={guardando ? () => {} : onCerrar}>
     <div className="space-y-5 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
       <SelectorImagen actual={null} archivo={archivo} onArchivo={setArchivo} quitar={false} onQuitar={() => setArchivo(null)} />
-      <label><span className="mb-1.5 block text-xs font-medium text-tenue">Título del producto</span><input autoFocus className="campo" maxLength={80} placeholder="Se completa como 110 Diamantes" value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+      <label><span className="mb-1.5 block text-xs font-medium text-tenue">Título del producto</span><input autoFocus className="campo uppercase" maxLength={80} placeholder="Se completa como 110 DIAMANTES" value={nombre} onChange={(e) => setNombre(e.target.value.toLocaleUpperCase('es-EC'))} /></label>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><label><span className="mb-1.5 block text-xs font-medium text-tenue">Cantidad de diamantes</span><input className="campo cifra" inputMode="numeric" placeholder="110" value={diamantes} onChange={(e) => setDiamantes(e.target.value.replace(/\D/g, ''))} /></label>
         <label><span className="mb-1.5 block text-xs font-medium text-tenue">Precio (USD)</span><input className="campo cifra" inputMode="decimal" placeholder="1.50" value={precio} onChange={(e) => setPrecio(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && crear()} /></label></div>
       <div className="rounded-xl border border-linea bg-panel2 p-3.5 text-sm text-tenue"><PackagePlus size={17} className="mb-2 text-marca" />El producto se crea sin stock. Después carga sus pines desde la sección Códigos.</div>

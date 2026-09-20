@@ -113,7 +113,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
         <span className="text-xs text-tenue">{productos.length} opciones</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
         {productos.map((p, i) => {
           const s = stock[p.id] ?? 0
           const agotado = s <= 0
@@ -123,7 +123,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
 
           return (
             <article key={p.id}
-              className={`tarjeta group flex flex-col overflow-hidden p-2 transition-all hover:-translate-y-0.5 hover:shadow-lg sm:p-2.5 ${
+              className={`tarjeta group flex min-h-36 overflow-hidden p-2 transition-all hover:-translate-y-0.5 hover:shadow-lg sm:p-2.5 ${
                 agotado ? 'border-error/35' : 'hover:border-marca/45'}`}>
               {/* La imagen es la card: el arte ya trae la cantidad de diamantes,
                   así que abajo solo queda el precio y la acción. */}
@@ -133,16 +133,16 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                 type="button"
                 onClick={() => setDetalle(p)}
                 aria-label={`Ver detalle de ${p.nombre}`}
-                className="relative block w-full cursor-pointer overflow-hidden rounded-xl border border-linea bg-panel2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
+                className="relative block w-28 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-linea bg-panel2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca sm:w-32"
               >
                 <ImagenProducto
                   url={p.imagen_url}
                   alt={p.nombre}
                   priority={i < 4}
                   iconoSize={44}
-                  sizes="(min-width: 1024px) 260px, (min-width: 640px) 32vw, 46vw"
+                  sizes="128px"
                   zoom={!agotado}
-                  className="aspect-4/5 w-full rounded-xl"
+                  className="h-full min-h-32 w-full rounded-xl"
                 />
 
                 {/* Agotado conserva el color del arte: se marca con un velo
@@ -162,13 +162,16 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                   </span>
                 )}
 
-                <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-base/75 py-1 text-[11px] font-medium text-fuerte opacity-0 backdrop-blur-sm transition group-hover:opacity-100">
-                  <Eye size={12} /> Ver detalle
+                <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-base/80 py-1 text-[10px] font-medium text-fuerte backdrop-blur-sm sm:text-[11px]">
+                  <Eye size={11} /> Ver
                 </span>
               </button>
 
-              <div className="flex flex-1 flex-col justify-end gap-2.5 px-1 pb-1 pt-3 sm:px-1.5">
-                <p className="cifra text-center text-xl font-bold text-marca sm:text-2xl">{usd(p.precio_cents)}</p>
+              <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 px-3 py-2 sm:px-4">
+                <div>
+                  <p className="text-xs font-medium text-tenue">Pin digital</p>
+                  <p className="cifra mt-1 text-2xl font-bold text-marca">{usd(p.precio_cents)}</p>
+                </div>
 
                 {agotado ? (
                   <button

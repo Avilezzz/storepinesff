@@ -26,7 +26,7 @@ export default function CatalogoVisitante({ productos }: { productos: Producto[]
           </Link>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:mt-8 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:mt-8 md:grid-cols-2 md:gap-4">
           {productos.map((p, idx) => (
             <motion.article
               key={p.id}
@@ -34,17 +34,17 @@ export default function CatalogoVisitante({ productos }: { productos: Producto[]
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-20px' }}
               transition={{ duration: 0.35, delay: Math.min(idx * 0.05, 0.3), ease: 'easeOut' }}
-              className="tarjeta group flex flex-col overflow-hidden p-2 transition-all hover:-translate-y-0.5 hover:border-marca/45 hover:shadow-lg sm:p-2.5"
+              className="tarjeta group flex min-h-36 overflow-hidden p-2 transition-all hover:-translate-y-0.5 hover:border-marca/45 hover:shadow-lg sm:p-2.5"
             >
-              <div className="relative overflow-hidden rounded-xl border border-linea bg-panel2">
+              <div className="relative w-28 shrink-0 overflow-hidden rounded-xl border border-linea bg-panel2 sm:w-32">
                 <ImagenProducto
                   url={p.imagen_url}
                   alt={p.nombre}
                   priority={idx < 4}
                   iconoSize={36}
-                  sizes="(min-width: 1024px) 260px, (min-width: 640px) 32vw, 46vw"
+                  sizes="128px"
                   zoom
-                  className="aspect-4/5 w-full rounded-xl"
+                  className="h-full min-h-32 w-full rounded-xl"
                 />
 
                 <span className={`chip absolute left-2 top-2 border bg-base/85 text-[10px] font-semibold backdrop-blur-md sm:text-xs ${
@@ -53,10 +53,11 @@ export default function CatalogoVisitante({ productos }: { productos: Producto[]
                 </span>
               </div>
 
-              <div className="flex flex-1 flex-col justify-end gap-2.5 px-1 pb-1 pt-3 sm:px-1.5">
-                <p className="cifra text-center text-xl font-bold text-marca sm:text-2xl">
-                  {usd(p.precio_cents)}
-                </p>
+              <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 px-3 py-2 sm:px-4">
+                <div>
+                  <p className="text-xs font-medium text-tenue">Pin digital</p>
+                  <p className="cifra mt-1 text-2xl font-bold text-marca">{usd(p.precio_cents)}</p>
+                </div>
 
                 <Link
                   href={`/registro`}

@@ -273,7 +273,7 @@ export function responderBasico(
         ? `Tienes ${s} de saldo.` + (alcanza
             ? ` Te alcanza para el paquete de ${alcanza.diamantes.toLocaleString('es-EC')} diamantes (${usd(alcanza.precio_cents)}).`
             : ' Aún no alcanza para ningún paquete disponible; puedes recargar desde Recargar.')
-        : `Tu saldo está en ${s}. Para comprar, primero recarga desde la sección Recargar (mínimo $2.00).`,
+        : `Tu saldo está en ${s}. Para comprar, primero recarga desde la sección Recargar (mínimo $5.00).`,
     }
   }
 

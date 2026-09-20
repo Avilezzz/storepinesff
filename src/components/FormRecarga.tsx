@@ -10,9 +10,9 @@ import { aCentavos, usd, mensajeError, hoyEcuador } from '@/lib/format'
 
 export type Banco = { id: number; banco: string }
 
-const MINIMO = 200          // $2.00 en centavos
+const MINIMO = 500          // $5.00 en centavos
 const MAX_BYTES = 5 * 1024 * 1024
-const ATAJOS = [200, 500, 1000, 2000]
+const ATAJOS = [500, 1000, 1500, 2000]
 
 export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; pendientes: number }) {
   const sb = supabaseBrowser()
@@ -33,7 +33,7 @@ export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; p
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
 
-    if (cents === null)           return toast.error('Escribe un monto válido, por ejemplo 2.00')
+    if (cents === null)           return toast.error('Escribe un monto válido, por ejemplo 5.00')
     if (cents < MINIMO)           return toast.error(`El monto mínimo de recarga es ${usd(MINIMO)}.`)
     if (!archivo)                 return toast.error('Adjunta la foto o el PDF del comprobante.')
     if (archivo.size > MAX_BYTES) return toast.error('El archivo pesa más de 5 MB.')
@@ -107,7 +107,7 @@ export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; p
 
       <div>
         <label className="mb-1.5 block text-xs font-medium text-tenue">Monto transferido (USD)</label>
-        <input className="campo" inputMode="decimal" required placeholder="2.00"
+        <input className="campo" inputMode="decimal" required placeholder="5.00"
           value={monto} onChange={(e) => setMonto(e.target.value)} />
         <div className="sin-barra mt-2 flex gap-1.5 overflow-x-auto">
           {ATAJOS.map((c) => (

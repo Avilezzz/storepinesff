@@ -130,7 +130,7 @@ export const PREGUNTAS = [
   },
   {
     p: '¿Con cuánto puedo empezar?',
-    r: 'Desde 2 dólares. No hace falta recargar de más: puedes poner el monto justo del pin que quieres comprar.',
+    r: 'La recarga mínima es de 5 dólares. Ese saldo queda disponible en tu billetera para comprar los pines que quieras.',
   },
   {
     p: '¿Qué formas de pago aceptan?',

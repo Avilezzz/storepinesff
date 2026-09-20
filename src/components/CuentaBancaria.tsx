@@ -102,7 +102,7 @@ function Copiable({ etiqueta, valor, mono, copiado, onCopiar }: {
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="shrink-0 text-xs text-tenue">{etiqueta}</span>
-      <button onClick={onCopiar}
+      <button type="button" onClick={onCopiar}
         className={`flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 transition hover:bg-panel2 ${
           mono ? 'font-mono tracking-wide' : ''}`}>
         <span className="truncate font-medium">{valor}</span>

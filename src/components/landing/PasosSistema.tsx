@@ -10,7 +10,7 @@ const PASOS = [
     icono: Landmark,
     titulo: 'Transfiere a nuestras cuentas',
     descripcion:
-      'Crea tu cuenta gratis y transfiere desde $2.00 a Banco Pichincha o Banco Guayaquil. Sube tu comprobante de pago.',
+      'Crea tu cuenta gratis y transfiere desde $5.00 a Banco Pichincha o Banco Guayaquil. Sube tu comprobante de pago.',
     detalle: 'Sin tarjeta de crédito',
   },
   {

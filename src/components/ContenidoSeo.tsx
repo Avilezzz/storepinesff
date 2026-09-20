@@ -24,7 +24,7 @@ export default function ContenidoSeo() {
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <Paso n={1} Icono={Landmark} titulo="Recarga tu saldo">
             Transfieres a nuestra cuenta de <strong className="text-fuerte">Banco Guayaquil</strong> o{' '}
-            <strong className="text-fuerte">Banco Pichincha</strong> y subes el comprobante. Desde $2.
+            <strong className="text-fuerte">Banco Pichincha</strong> y subes el comprobante. Desde $5.
           </Paso>
           <Paso n={2} Icono={Wallet} titulo="Verificamos y acreditamos">
             Revisamos la transferencia a mano y te acreditamos el saldo. Te avisamos por

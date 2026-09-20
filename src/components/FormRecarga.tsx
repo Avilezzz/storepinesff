@@ -7,8 +7,12 @@ import { Upload, CheckCircle2, Loader2, FileImage, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { aCentavos, usd, mensajeError, hoyEcuador } from '@/lib/format'
+import CuentaBancaria from '@/components/CuentaBancaria'
 
-export type Banco = { id: number; banco: string }
+export type Banco = {
+  id: number; banco: string; tipo_cuenta: string; numero_cuenta: string
+  titular: string; identificacion: string; email_contacto: string | null
+}
 
 const MINIMO = 500          // $5.00 en centavos
 const MAX_BYTES = 5 * 1024 * 1024
@@ -29,12 +33,14 @@ export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; p
   const cents = aCentavos(monto)
   const bloqueado = pendientes >= 3
   const hoy = hoyEcuador()
+  const cuentaSeleccionada = bancos.find((b) => b.banco === banco) ?? bancos[0]
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
 
     if (cents === null)           return toast.error('Escribe un monto válido, por ejemplo 5.00')
     if (cents < MINIMO)           return toast.error(`El monto mínimo de recarga es ${usd(MINIMO)}.`)
+    if (!cuentaSeleccionada)      return toast.error('No hay una cuenta bancaria disponible.')
     if (!archivo)                 return toast.error('Adjunta la foto o el PDF del comprobante.')
     if (archivo.size > MAX_BYTES) return toast.error('El archivo pesa más de 5 MB.')
 
@@ -93,7 +99,19 @@ export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; p
   }
 
   return (
-    <form onSubmit={enviar} className="tarjeta mt-5 space-y-4 p-4 sm:p-5">
+    <>
+      <section className="mt-5 space-y-3">
+        <label className="block"><span className="mb-1.5 block text-xs font-medium text-tenue">Selecciona el banco de destino</span>
+          <select className="campo" value={banco} onChange={(e) => setBanco(e.target.value)} required>
+            {bancos.map((b) => <option key={b.id} value={b.banco}>{b.banco}</option>)}
+          </select>
+        </label>
+        {cuentaSeleccionada
+          ? <CuentaBancaria cuenta={cuentaSeleccionada} />
+          : <p className="tarjeta border-alerta/40 p-4 text-sm text-alerta">No hay cuentas bancarias disponibles en este momento.</p>}
+      </section>
+
+    <form onSubmit={enviar} className="tarjeta mt-4 space-y-4 p-4 sm:p-5">
       <div>
         <h2 className="subtitulo">Reporta tu transferencia</h2>
         <p className="mt-0.5 text-xs text-tenue">Todos los campos son obligatorios salvo la nota.</p>
@@ -121,19 +139,10 @@ export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; p
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-tenue">Banco de destino</label>
-          <select className="campo" value={banco} onChange={(e) => setBanco(e.target.value)} required>
-            {bancos.map((b) => <option key={b.id} value={b.banco}>{b.banco}</option>)}
-          </select>
-        </div>
-
-        <div>
+      <div>
           <label className="mb-1.5 block text-xs font-medium text-tenue">Fecha de la transferencia</label>
           <input type="date" className="campo" required max={hoy}
             value={fechaTr} onChange={(e) => setFechaTr(e.target.value)} />
-        </div>
       </div>
 
       <div>
@@ -172,10 +181,11 @@ export default function FormRecarga({ bancos, pendientes }: { bancos: Banco[]; p
         <textarea className="campo resize-none" rows={2} value={nota} onChange={(e) => setNota(e.target.value)} />
       </div>
 
-      <button disabled={enviando || bloqueado} className="btn btn-primario w-full">
+      <button disabled={enviando || bloqueado || !cuentaSeleccionada} className="btn btn-primario w-full">
         {enviando ? <><Loader2 size={15} className="animate-spin" /> Enviando…</>
           : cents ? `Solicitar recarga de ${usd(cents)}` : 'Enviar solicitud'}
       </button>
     </form>
+    </>
   )
 }

@@ -56,7 +56,7 @@ export default function CatalogoVisitante({ productos }: { productos: Producto[]
 
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 px-3 py-2 sm:px-4">
                 <div>
-                  <p className="text-xs font-medium text-tenue">Pin digital</p>
+                  <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-fuerte sm:text-base">{p.nombre}</h3>
                   <p className={`cifra mt-1 text-xs font-semibold ${p.stock_disponible > 0 ? 'text-ok' : 'text-error'}`}>
                     Stock: {p.stock_disponible}
                   </p>

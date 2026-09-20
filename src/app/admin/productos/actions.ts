@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase'
 
-type Cambios = { precio_cents?: number; imagen_url?: string | null; activo?: boolean }
+type Cambios = { nombre?: string; precio_cents?: number; imagen_url?: string | null; activo?: boolean }
 
 export async function actualizarProducto(id: string, cambios: Cambios) {
   const sb = await supabaseServer()
@@ -13,6 +13,11 @@ export async function actualizarProducto(id: string, cambios: Cambios) {
   if (permiso || admin !== true) return { error: { message: 'SOLO_ADMIN' } }
 
   const patch: Cambios = {}
+  if ('nombre' in cambios) {
+    const nombre = cambios.nombre?.trim()
+    if (!nombre || nombre.length > 80) return { error: { message: 'El título debe tener entre 1 y 80 caracteres.' } }
+    patch.nombre = nombre
+  }
   if ('precio_cents' in cambios) {
     if (!Number.isSafeInteger(cambios.precio_cents) || cambios.precio_cents! <= 0)
       return { error: { message: 'Precio inválido.' } }
@@ -33,7 +38,7 @@ export async function actualizarProducto(id: string, cambios: Cambios) {
 
   // single exige una fila actualizada: RLS puede devolver cero filas sin error.
   const { data, error } = await sb.from('products').update(patch).eq('id', id)
-    .select('id, precio_cents, imagen_url, activo').single()
+    .select('id, nombre, precio_cents, imagen_url, activo').single()
   if (error || !data) return { error: { message: 'No se pudo guardar el producto. Revisa tu sesión y vuelve a intentarlo.' } }
 
   revalidatePath('/')

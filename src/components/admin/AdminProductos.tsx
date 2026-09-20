@@ -150,18 +150,21 @@ function SelectorImagen({ actual, archivo, onArchivo, quitar, onQuitar }: {
 
 function ModalEditar({ producto: p, onCerrar, onListo }: { producto: Producto; onCerrar: () => void; onListo: () => void }) {
   const sb = supabaseBrowser()
+  const [nombre, setNombre] = useState(p.nombre)
   const [precio, setPrecio] = useState((p.precio_cents / 100).toFixed(2))
   const [activo, setActivo] = useState(p.activo)
   const [archivo, setArchivo] = useState<File | null>(null)
   const [quitarImagen, setQuitarImagen] = useState(false)
   const [guardando, setGuardando] = useState(false)
   async function guardar() {
+    const titulo = nombre.trim(); if (!titulo || titulo.length > 80) return toast.error('El título debe tener entre 1 y 80 caracteres.')
     const cents = aCentavos(precio); if (cents === null || cents <= 0) return toast.error('Precio inválido.')
     setGuardando(true)
     let nuevaUrl: string | null | undefined
     if (archivo) nuevaUrl = await subirImagen(sb, p.id, archivo); else if (quitarImagen) nuevaUrl = null
     if (archivo && !nuevaUrl) { setGuardando(false); return }
-    const cambios: { precio_cents?: number; activo?: boolean; imagen_url?: string | null } = {}
+    const cambios: { nombre?: string; precio_cents?: number; activo?: boolean; imagen_url?: string | null } = {}
+    if (titulo !== p.nombre) cambios.nombre = titulo
     if (cents !== p.precio_cents) cambios.precio_cents = cents
     if (activo !== p.activo) cambios.activo = activo
     if (nuevaUrl !== undefined) cambios.imagen_url = nuevaUrl
@@ -174,8 +177,10 @@ function ModalEditar({ producto: p, onCerrar, onListo }: { producto: Producto; o
   return <ModalBase titulo="Editar producto" subtitulo={p.nombre} onCerrar={guardando ? () => {} : onCerrar}>
     <div className="space-y-5 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
       <SelectorImagen actual={p.imagen_url} archivo={archivo} onArchivo={(f) => { setArchivo(f); setQuitarImagen(false) }} quitar={quitarImagen} onQuitar={() => { setArchivo(null); setQuitarImagen(true) }} />
+      <label className="block"><span className="mb-1.5 block text-xs font-medium text-tenue">Título del producto</span>
+        <input autoFocus className="campo" maxLength={80} placeholder="Ej. 110 Diamantes" value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
       <label className="block"><span className="mb-1.5 block text-xs font-medium text-tenue">Precio (USD)</span>
-        <input autoFocus className="campo cifra" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardar()} /></label>
+        <input className="campo cifra" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardar()} /></label>
       <button type="button" aria-pressed={activo} onClick={() => setActivo((v) => !v)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-linea bg-panel2 p-3.5 text-left">
         <span><span className="block text-sm font-medium">Visible en la tienda</span><span className="mt-0.5 block text-xs text-tenue">{activo ? 'Los clientes pueden comprarlo.' : 'No aparecerá en el catálogo.'}</span></span>
         <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${activo ? 'bg-marca' : 'bg-linea'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${activo ? 'left-6' : 'left-1'}`} /></span>
@@ -189,14 +194,16 @@ function ModalEditar({ producto: p, onCerrar, onListo }: { producto: Producto; o
 
 function ModalNuevo({ onCerrar, onListo }: { onCerrar: () => void; onListo: () => void }) {
   const sb = supabaseBrowser()
-  const [diamantes, setDiamantes] = useState(''); const [precio, setPrecio] = useState('')
+  const [nombre, setNombre] = useState(''); const [diamantes, setDiamantes] = useState(''); const [precio, setPrecio] = useState('')
   const [archivo, setArchivo] = useState<File | null>(null); const [guardando, setGuardando] = useState(false)
   async function crear() {
     const d = parseInt(diamantes, 10); const cents = aCentavos(precio)
     if (!d || d <= 0) return toast.error('Cantidad de diamantes inválida.')
     if (cents === null || cents <= 0) return toast.error('Precio inválido.')
+    const titulo = nombre.trim() || `${d} Diamantes`
+    if (titulo.length > 80) return toast.error('El título no puede superar 80 caracteres.')
     setGuardando(true)
-    const { data, error } = await sb.from('products').insert({ slug: `${d}-diamantes`, nombre: `${d} Diamantes`, diamantes: d, precio_cents: cents, descripcion: `Pin de ${d} diamantes para Free Fire`, orden: d }).select('id').single()
+    const { data, error } = await sb.from('products').insert({ slug: `${d}-diamantes`, nombre: titulo, diamantes: d, precio_cents: cents, descripcion: `Pin de ${d} diamantes para Free Fire`, orden: d }).select('id').single()
     if (error) { setGuardando(false); return toast.error(mensajeError(error.message)) }
     if (archivo) { const id = (data as { id: string }).id; const url = await subirImagen(sb, id, archivo); if (url) { const { error: e } = await actualizarProducto(id, { imagen_url: url }); if (e) toast.error(`Producto creado, pero la imagen no se guardó: ${mensajeError(e.message)}`) } }
     setGuardando(false); toast.success(`${d} Diamantes creado`); onListo()
@@ -204,7 +211,8 @@ function ModalNuevo({ onCerrar, onListo }: { onCerrar: () => void; onListo: () =
   return <ModalBase titulo="Nuevo producto" subtitulo="Añade una nueva opción al catálogo" onCerrar={guardando ? () => {} : onCerrar}>
     <div className="space-y-5 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
       <SelectorImagen actual={null} archivo={archivo} onArchivo={setArchivo} quitar={false} onQuitar={() => setArchivo(null)} />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><label><span className="mb-1.5 block text-xs font-medium text-tenue">Cantidad de diamantes</span><input autoFocus className="campo cifra" inputMode="numeric" placeholder="110" value={diamantes} onChange={(e) => setDiamantes(e.target.value.replace(/\D/g, ''))} /></label>
+      <label><span className="mb-1.5 block text-xs font-medium text-tenue">Título del producto</span><input autoFocus className="campo" maxLength={80} placeholder="Se completa como 110 Diamantes" value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><label><span className="mb-1.5 block text-xs font-medium text-tenue">Cantidad de diamantes</span><input className="campo cifra" inputMode="numeric" placeholder="110" value={diamantes} onChange={(e) => setDiamantes(e.target.value.replace(/\D/g, ''))} /></label>
         <label><span className="mb-1.5 block text-xs font-medium text-tenue">Precio (USD)</span><input className="campo cifra" inputMode="decimal" placeholder="1.50" value={precio} onChange={(e) => setPrecio(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && crear()} /></label></div>
       <div className="rounded-xl border border-linea bg-panel2 p-3.5 text-sm text-tenue"><PackagePlus size={17} className="mb-2 text-marca" />El producto se crea sin stock. Después carga sus pines desde la sección Códigos.</div>
       <div className="flex gap-2 pt-1"><button onClick={onCerrar} disabled={guardando} className="btn btn-suave flex-1">Cancelar</button><button onClick={crear} disabled={guardando} className="btn btn-primario flex-1">{guardando ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}{guardando ? 'Creando…' : 'Crear producto'}</button></div>

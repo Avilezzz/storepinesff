@@ -53,3 +53,10 @@ test('valida precios e imágenes y permite quitar la imagen', async () => {
   assert.equal((await f.update('product', { imagen_url: 'https://test.supabase.co/storage/v1/object/public/productos/product/new.png' })).error, null)
   assert.equal((await f.update('product', { imagen_url: null })).error, null)
 })
+test('valida y guarda el título del producto', async () => {
+  const f = fixture()
+  assert.ok((await f.update('product', { nombre: '   ' })).error)
+  assert.ok((await f.update('product', { nombre: 'x'.repeat(81) })).error)
+  assert.equal((await f.update('product', { nombre: '  Paquete semanal  ' })).error, null)
+  assert.equal(f.updates[0].nombre, 'Paquete semanal')
+})

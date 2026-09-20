@@ -47,15 +47,19 @@ export default function CatalogoVisitante({ productos }: { productos: Producto[]
                   className="h-full min-h-32 w-full rounded-xl"
                 />
 
-                <span className={`chip absolute left-2 top-2 border bg-base/85 text-[10px] font-semibold backdrop-blur-md sm:text-xs ${
-                  p.stock_disponible > 0 ? 'border-linea/70 text-ok' : 'border-error/40 text-error'}`}>
-                  {p.stock_disponible > 0 ? 'Disponible' : 'Agotado'}
-                </span>
+                {p.stock_disponible <= 0 && (
+                  <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-error/90 py-1 text-center text-[11px] font-bold uppercase tracking-widest text-white shadow-lg">
+                    Agotado
+                  </span>
+                )}
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 px-3 py-2 sm:px-4">
                 <div>
                   <p className="text-xs font-medium text-tenue">Pin digital</p>
+                  <p className={`cifra mt-1 text-xs font-semibold ${p.stock_disponible > 0 ? 'text-ok' : 'text-error'}`}>
+                    Stock: {p.stock_disponible}
+                  </p>
                   <p className="cifra mt-1 text-2xl font-bold text-marca">{usd(p.precio_cents)}</p>
                 </div>
 

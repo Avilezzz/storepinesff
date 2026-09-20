@@ -151,14 +151,9 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                   <span aria-hidden className="absolute inset-0 bg-[#080a0e]/45" />
                 )}
 
-                {agotado ? (
+                {agotado && (
                   <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 bg-error/90 py-1 text-center text-[11px] font-bold uppercase tracking-widest text-white shadow-lg">
                     Agotado
-                  </span>
-                ) : (
-                  <span className={`chip absolute left-2 top-2 border backdrop-blur-md font-semibold ${
-                    s <= 5 ? 'border-alerta/40 bg-base/85 text-alerta' : 'border-linea/70 bg-base/85 text-ok'}`}>
-                    {s <= 5 ? `Últimos ${s}` : 'Disponible'}
                   </span>
                 )}
 
@@ -170,6 +165,9 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 px-3 py-2 sm:px-4">
                 <div>
                   <p className="text-xs font-medium text-tenue">Pin digital</p>
+                  <p className={`cifra mt-1 text-xs font-semibold ${agotado ? 'text-error' : s <= 5 ? 'text-alerta' : 'text-ok'}`}>
+                    Stock: {s}
+                  </p>
                   <p className="cifra mt-1 text-2xl font-bold text-marca">{usd(p.precio_cents)}</p>
                 </div>
 

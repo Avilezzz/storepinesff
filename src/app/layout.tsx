@@ -4,7 +4,7 @@ import {
   SITIO, MARCA, LOCALE, CLAVES, DESCRIPCION, VERIFICACION_GOOGLE,
   jsonLdTienda, jsonLdSitio,
 } from '@/lib/seo'
-import { Geist } from 'next/font/google'
+import { Outfit, Space_Grotesk } from 'next/font/google'
 import { Toaster } from 'sonner'
 import Navbar from '@/components/Navbar'
 import BarraMovil from '@/components/BarraMovil'
@@ -12,7 +12,8 @@ import Avisos from '@/components/Avisos'
 import Asistente from '@/components/Asistente'
 import './globals.css'
 
-const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'], display: 'swap' })
+const outfit = Outfit({ variable: '--font-outfit', subsets: ['latin'], display: 'swap' })
+const spaceGrotesk = Space_Grotesk({ variable: '--font-space-grotesk', subsets: ['latin'], display: 'swap' })
 
 export const metadata: Metadata = {
   // Sin metadataBase, Next no puede convertir las rutas de las imágenes de
@@ -78,7 +79,7 @@ try {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // lang es-EC y no "es" a secas: le dice al buscador que esto es para Ecuador.
   return (
-    <html lang="es-EC" data-tema="claro" className={`${geist.variable} h-full`} suppressHydrationWarning>
+    <html lang="es-EC" data-tema="claro" className={`${outfit.variable} ${spaceGrotesk.variable} h-full`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
         {/* Identidad de la tienda para el buscador: quién vende, dónde y cómo

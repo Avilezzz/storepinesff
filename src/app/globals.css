@@ -53,7 +53,7 @@ html {
 body {
   background: var(--color-base);
   color: var(--color-fuerte);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-outfit), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -66,6 +66,7 @@ body {
    text-marca, etc.) puedan sobreescribirlos cuando sea necesario.         */
 @layer components {
   .titulo {
+    font-family: var(--font-space-grotesk), var(--font-outfit), sans-serif;
     font-size: 1.375rem;
     font-weight: 600;
     letter-spacing: -0.02em;
@@ -73,6 +74,7 @@ body {
     color: var(--color-fuerte);
   }
   .subtitulo {
+    font-family: var(--font-space-grotesk), var(--font-outfit), sans-serif;
     font-size: 1rem;
     font-weight: 600;
     letter-spacing: -0.01em;
@@ -92,7 +94,15 @@ body {
    es 4.5:1, y se notaba sobre todo en los textos de 11px del panel. La jerarquía
    la da el tamaño, no la transparencia. */
 @layer components {
-  .cifra { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  h1, h2, h3 {
+    font-family: var(--font-space-grotesk), var(--font-outfit), sans-serif;
+  }
+
+  .cifra {
+    font-family: var(--font-space-grotesk), var(--font-outfit), sans-serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.025em;
+  }
 
   /* Resplandor de marca, puramente decorativo. */
   .aura {

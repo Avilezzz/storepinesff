@@ -44,6 +44,7 @@ export const ACCIONES: Accion[] = [
   { id: 'compras',   txt: 'Mis compras',      href: '/mis-compras', icono: 'receipt' },
   { id: 'reclamo',   txt: 'Reportar un pin',  href: '/mis-compras', icono: 'alert' },
   { id: 'cuenta',    txt: 'Mi cuenta',        href: '/cuenta',      icono: 'user' },
+  { id: 'ganancias', txt: 'Mis ganancias',    href: '/ganancias',   icono: 'wallet' },
   { id: 'whatsapp',  txt: 'Hablar por WhatsApp', href: '',          icono: 'chat' },
 ]
 
@@ -60,6 +61,7 @@ const REGLAS: { re: RegExp; ids: string[] }[] = [
   { re: /(precio|cuesta|vale|catalogo|paquete|diamante|compr|stock|disponible|agotad)/, ids: ['catalogo', 'carrito'] },
   { re: /(persona|humano|asesor|whatsapp|contact|hablar|alguien)/, ids: ['whatsapp'] },
   { re: /(mi cuenta|perfil|telefono|correo|contrasen)/, ids: ['cuenta'] },
+  { re: /(revend|ganancia|margen|pvp|precio sugerido|registrar venta)/, ids: ['ganancias', 'compras'] },
 ]
 
 /**
@@ -91,11 +93,14 @@ export function accionesPara(consulta: string, fijadas?: string[]): string[] {
 export type Contexto = {
   nombre: string
   saldo_cents: number
-  productos: { nombre: string; diamantes: number; precio_cents: number; stock: number }[]
+  productos: { nombre: string; diamantes: number; precio_cents: number; pvp_cents: number; stock: number }[]
   compras: { fecha: string; producto: string }[]
   recargas_pendientes: number
   kb: Entrada[]
   whatsapp: string
+  es_revendedor: boolean
+  ganancia_cents: number
+  ventas_registradas: number
 }
 
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`
@@ -113,7 +118,7 @@ const usd = (c: number) => `$${(c / 100).toFixed(2)}`
 export function instrucciones(c: Contexto): string {
   const catalogo = c.productos.length
     ? c.productos.map((p) =>
-        `- ${p.nombre}: ${p.diamantes.toLocaleString('es-EC')} diamantes, ${usd(p.precio_cents)}` +
+        `- ${p.nombre}: costo ${usd(p.precio_cents)}, PVP actual ${usd(p.pvp_cents)}` +
         (p.stock > 0 ? ` (${p.stock} disponibles)` : ' (AGOTADO)')).join('\n')
     : '- (no hay paquetes publicados ahora mismo)'
 
@@ -134,6 +139,15 @@ CÓMO HABLAS
 QUÉ PUEDES DECIR
 - Precios, diamantes y disponibilidad: SOLO los del catálogo de abajo, tal cual. Jamás inventes una cifra ni un descuento.
 - El saldo, las compras y las recargas del cliente: solo los datos de abajo, que son suyos.
+
+ASESORÍA PARA REVENDEDORES
+- Todas las cuentas tienen acceso al módulo Mis ganancias. El precio de la tienda es el costo del revendedor; el PVP es lo que este decide cobrar a su cliente final.
+- La ganancia por pin se calcula como PVP menos costo. El PVP sugerido es una referencia y puede cambiarse en Mis ganancias; aconseja mantenerlo por encima del costo y revisar el mercado, sin prometer ventas ni ingresos.
+- Cambiar un PVP solo afecta ventas futuras. El costo, PVP y ganancia de cada venta registrada quedan guardados y no cambian después.
+- Comprar o copiar un pin no registra una ganancia. El revendedor debe tocar Registrar venta cuando lo entregue; si toca Canjear, la venta se registra automáticamente antes de abrir el canje.
+- Mis ganancias muestra ganancia acumulada, total vendido, cantidad de pines, precios personalizados, movimientos y pines pendientes de registrar.
+- La ganancia es un registro contable para controlar el negocio; no se suma al saldo de la billetera ni implica que FFPINS haya cobrado al cliente final.
+- Consejo responsable: confirma primero el pago del cliente, no compartas el pin antes de cobrar, usa un margen positivo y registra cada venta para que las cifras sean reales.
 
 CÓMO SE HACEN LAS COSAS EN LA TIENDA
 Para cualquier procedimiento —recargar, comprar, canjear, reclamar— repite lo que dicen las RESPUESTAS FRECUENTES de abajo, con tus palabras pero sin cambiar el fondo. No añadas pasos, menús, formularios ni campos que no aparezcan ahí, aunque te parezcan lógicos: si te lo inventas, mandas al cliente a buscar botones que no existen.
@@ -157,6 +171,8 @@ DATOS DEL CLIENTE
 Nombre: ${c.nombre || 'sin nombre registrado'}
 Saldo disponible: ${usd(c.saldo_cents)}
 Recargas esperando aprobación: ${c.recargas_pendientes}
+Cuenta revendedora: ${c.es_revendedor ? 'sí' : 'no'}
+Ganancia registrada: ${usd(c.ganancia_cents)} en ${c.ventas_registradas} venta${c.ventas_registradas === 1 ? '' : 's'}
 Últimas compras:
 ${compras}
 

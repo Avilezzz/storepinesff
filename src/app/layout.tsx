@@ -53,7 +53,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#f6f7f9',
+  themeColor: '#0a0c10',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',   // respeta el notch y la barra inferior del iPhone
@@ -64,22 +64,22 @@ export const viewport: Viewport = {
  * suelto y bloqueante a propósito: hacerlo en un efecto de React mostraría la
  * página en claro durante un instante antes de saltar a oscuro.
  *
- * Sin preferencia guardada manda el tema claro, aunque el sistema esté en
- * oscuro: es la decisión de diseño de la tienda.
+ * Sin preferencia guardada manda el tema oscuro. Si el usuario cambia a claro,
+ * su elección se conserva en el dispositivo.
  */
 const SCRIPT_TEMA = `
 try {
   var t = localStorage.getItem('tema');
-  document.documentElement.dataset.tema = t === 'oscuro' ? 'oscuro' : 'claro';
+  document.documentElement.dataset.tema = t === 'claro' ? 'claro' : 'oscuro';
 } catch (e) {
-  document.documentElement.dataset.tema = 'claro';
+  document.documentElement.dataset.tema = 'oscuro';
 }
 `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // lang es-EC y no "es" a secas: le dice al buscador que esto es para Ecuador.
   return (
-    <html lang="es-EC" data-tema="claro" className={`${outfit.variable} ${spaceGrotesk.variable} h-full`} suppressHydrationWarning>
+    <html lang="es-EC" data-tema="oscuro" className={`${outfit.variable} ${spaceGrotesk.variable} h-full`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
         {/* Identidad de la tienda para el buscador: quién vende, dónde y cómo

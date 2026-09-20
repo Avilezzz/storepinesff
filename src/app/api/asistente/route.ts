@@ -107,11 +107,13 @@ type Cliente = Awaited<ReturnType<typeof supabaseServer>>
  * completo, y jamás el correo ni el teléfono: para responder no hacen falta.
  */
 async function armarContexto(sb: Cliente, uid: string): Promise<Contexto> {
-  const [perfil, wallet, productos, compras, recargas, kb, contacto] = await Promise.all([
-    sb.from('profiles').select('nombre').eq('id', uid).single(),
+  const [perfil, wallet, productos, precios, ventas, compras, recargas, kb, contacto] = await Promise.all([
+    sb.from('profiles').select('nombre, es_revendedor').eq('id', uid).single(),
     sb.from('wallets').select('balance_cents').eq('user_id', uid).single(),
-    sb.from('products').select('nombre, diamantes, precio_cents, stock_disponible')
+    sb.from('products').select('id, nombre, diamantes, precio_cents, pvp_sugerido_cents, stock_disponible')
       .eq('activo', true).order('orden'),
+    sb.from('reseller_prices').select('product_id, pvp_cents').eq('user_id', uid),
+    sb.from('reseller_sales').select('profit_cents').eq('user_id', uid),
     sb.from('orders').select('created_at, order_items(products(nombre))')
       .order('created_at', { ascending: false }).limit(3),
     sb.from('topup_requests').select('id', { count: 'exact', head: true }).eq('estado', 'PENDIENTE'),
@@ -120,16 +122,23 @@ async function armarContexto(sb: Cliente, uid: string): Promise<Contexto> {
   ])
 
   const wa = (contacto.data as { value: { whatsapp?: string } } | null)?.value?.whatsapp ?? ''
+  const precioPropio = new Map(((precios.data as { product_id: string; pvp_cents: number }[] | null) ?? [])
+    .map((p) => [p.product_id, p.pvp_cents]))
+  const ventasPropias = (ventas.data as { profit_cents: number }[] | null) ?? []
 
   type Pedido = { created_at: string; order_items: { products: { nombre: string } | null }[] }
 
   return {
     nombre: ((perfil.data as { nombre: string } | null)?.nombre ?? '').split(' ')[0],
+    es_revendedor: (perfil.data as { es_revendedor: boolean } | null)?.es_revendedor ?? false,
+    ganancia_cents: ventasPropias.reduce((total, venta) => total + venta.profit_cents, 0),
+    ventas_registradas: ventasPropias.length,
     saldo_cents: (wallet.data as { balance_cents: number } | null)?.balance_cents ?? 0,
     productos: ((productos.data as {
-      nombre: string; diamantes: number; precio_cents: number; stock_disponible: number
+      id: string; nombre: string; diamantes: number; precio_cents: number; pvp_sugerido_cents: number; stock_disponible: number
     }[] | null) ?? []).map((p) => ({
-      nombre: p.nombre, diamantes: p.diamantes, precio_cents: p.precio_cents, stock: p.stock_disponible,
+      nombre: p.nombre, diamantes: p.diamantes, precio_cents: p.precio_cents,
+      pvp_cents: precioPropio.get(p.id) ?? p.pvp_sugerido_cents, stock: p.stock_disponible,
     })),
     compras: ((compras.data as Pedido[] | null) ?? []).map((o) => ({
       fecha: soloFecha(o.created_at.slice(0, 10)),

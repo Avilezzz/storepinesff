@@ -20,11 +20,13 @@ export default function CompletarPerfil() {
 function Formulario() {
   const sb = supabaseBrowser()
   const router = useRouter()
-  const volver = useSearchParams().get('volver') ?? '/'
+  const volverSolicitado = useSearchParams().get('volver') ?? '/'
+  const volver = volverSolicitado.startsWith('/') && !volverSolicitado.startsWith('//') ? volverSolicitado : '/'
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
   const [acepta, setAcepta] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [verificando, setVerificando] = useState(true)
 
   // Google trae el nombre; solo se pide si vino vacío o de relleno.
   const [pedirNombre, setPedirNombre] = useState(false)
@@ -33,7 +35,6 @@ function Formulario() {
     void (async () => {
       const { data: { user } } = await sb.auth.getUser()
       if (!user) return router.replace('/login')
-      if (user.user_metadata?.telefono) return router.replace(volver)
 
       const { data } = await sb.from('profiles')
         .select('nombre, telefono').eq('id', user.id).maybeSingle()
@@ -43,13 +44,13 @@ function Formulario() {
       // Google llega aquí sin el dato en el metadata: se copia y sigue de largo,
       // en vez de pedirle algo que la base ya sabe.
       if (p?.telefono && p.telefono !== '0000000000') {
-        await sb.auth.updateUser({ data: { telefono: p.telefono } })
         return router.replace(volver)
       }
 
       const actual = p?.nombre ?? ''
       setNombre(actual === 'Usuario' ? '' : actual)
       setPedirNombre(actual === 'Usuario' || actual.trim().length < 3)
+      setVerificando(false)
     })()
   }, [sb, router, volver])
 
@@ -68,7 +69,7 @@ function Formulario() {
     const cambios: { telefono: string; nombre?: string } = { telefono: tel }
     if (pedirNombre) cambios.nombre = nombre.trim()
 
-    const { error } = await sb.from('profiles').update(cambios).eq('id', user.id)
+    const { error } = await sb.from('profiles').update(cambios).eq('id', user.id).select('id').single()
     if (error) {
       setGuardando(false)
       return toast.error(mensajeError(error.message))
@@ -76,14 +77,20 @@ function Formulario() {
 
     // El teléfono también va al metadata de la sesión: el middleware lo lee de
     // ahí para saber si el perfil está completo, sin consultar la base.
-    await sb.auth.updateUser({ data: { telefono: tel, ...(pedirNombre ? { nombre: nombre.trim() } : {}) } })
-    await sb.rpc('fn_aceptar_terminos', { p_version: VERSION_LEGAL })
+    const { error: authError } = await sb.auth.updateUser({ data: { telefono: tel, ...(pedirNombre ? { nombre: nombre.trim() } : {}) } })
+    const { error: legalError } = await sb.rpc('fn_aceptar_terminos', { p_version: VERSION_LEGAL })
+    if (authError || legalError) {
+      setGuardando(false)
+      return toast.error('El teléfono se guardó, pero no pudimos terminar la sesión. Vuelve a ingresar.')
+    }
 
     setGuardando(false)
     toast.success('¡Listo! Tu cuenta quedó completa.')
     router.replace(volver)
     router.refresh()
   }
+
+  if (verificando) return <div className="aura grid min-h-[calc(100vh-3.5rem)] place-items-center"><Loader2 className="animate-spin text-marca" /></div>
 
   return (
     <div className="aura flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4 py-10">

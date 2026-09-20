@@ -4,10 +4,9 @@ import { cookieDeSesion } from '@/lib/cookies-sesion'
 
 /** Rutas que exigen sesión iniciada. */
 const PRIVADAS = ['/billetera', '/recargar', '/mis-compras', '/admin', '/cuenta',
-                  '/completar-perfil']
+                  '/completar-perfil', '/ganancias']
 
-/** Privadas donde sí se entra con el perfil a medias: son las que lo completan. */
-const SIN_PERFIL_OK = ['/cuenta', '/completar-perfil']
+const SIN_PERFIL_OK = ['/completar-perfil']
 
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req })
@@ -41,16 +40,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Quien entró por Google no trae teléfono: se le pide antes de dejarlo
-  // operar con dinero. El dato viaja en el metadata de la sesión, así que
-  // comprobarlo no cuesta una consulta a la base.
-  if (user && !user.user_metadata?.telefono
-      && PRIVADAS.some((p) => path.startsWith(p))
+  // `profiles.telefono` es la única fuente de verdad. Antes se mezclaba con
+  // metadata de Auth y eso hacía que el formulario reapareciera o saltara de
+  // lugar cuando una de las dos copias tardaba en actualizarse.
+  if (user && PRIVADAS.some((p) => path.startsWith(p))
       && !SIN_PERFIL_OK.some((p) => path.startsWith(p))) {
-    const url = req.nextUrl.clone()
-    url.pathname = '/completar-perfil'
-    url.searchParams.set('volver', path)
-    return NextResponse.redirect(url)
+    const { data: perfil } = await supabase.from('profiles')
+      .select('telefono').eq('id', user.id).maybeSingle()
+    if (!perfil?.telefono || perfil.telefono === '0000000000') {
+      const url = req.nextUrl.clone()
+      url.pathname = '/completar-perfil'
+      url.searchParams.set('volver', `${path}${req.nextUrl.search}`)
+      return NextResponse.redirect(url)
+    }
   }
 
   if (user && (path === '/login' || path === '/registro')) {

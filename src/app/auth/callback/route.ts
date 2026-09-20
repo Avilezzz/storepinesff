@@ -29,8 +29,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
   }
 
-  // Quien entra por Google no trae teléfono: se le pide una sola vez.
-  const falta = !data.user?.user_metadata?.telefono
+  // La base es la única fuente de verdad: no dependemos de que el metadata de
+  // Google y la fila del perfil se actualicen exactamente al mismo tiempo.
+  const { data: perfil } = data.user
+    ? await sb.from('profiles').select('telefono').eq('id', data.user.id).maybeSingle()
+    : { data: null }
+  const falta = !perfil?.telefono || perfil.telefono === '0000000000'
   return NextResponse.redirect(
     falta
       ? `${origin}/completar-perfil?volver=${encodeURIComponent(destino)}`

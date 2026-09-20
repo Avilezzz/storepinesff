@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Pencil, Check, X, Loader2, Mail, Phone, User, Wallet, Package,
-  ShieldCheck, AlertCircle, LogOut,
+  ShieldCheck, LogOut,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
@@ -89,17 +89,6 @@ export default function CuentaUI({ perfil, saldo, compras, proveedores }: {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:py-9">
       <h1 className="titulo mb-5">Mi cuenta</h1>
-
-      {faltaTelefono && !editando && (
-        <div className="tarjeta mb-3 flex flex-wrap items-center gap-3 border-alerta/40 bg-alerta/8 p-3.5">
-          <AlertCircle size={17} className="shrink-0 text-alerta" />
-          <p className="min-w-0 flex-1 text-sm leading-relaxed text-alerta">
-            Falta tu teléfono. Lo necesitamos para avisarte si hay un problema
-            con una recarga o con tus pines: sin él no puedes comprar.
-          </p>
-          <button onClick={() => setEditando(true)} className="btn btn-primario">Agregarlo</button>
-        </div>
-      )}
 
       <div className="tarjeta p-4 sm:p-5">
         <div className="flex items-center gap-3.5">

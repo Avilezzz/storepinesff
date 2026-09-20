@@ -7,6 +7,15 @@ import { toast } from 'sonner'
 import { supabaseBrowser } from '@/lib/supabase-client'
 import { usd, aCentavos, mensajeError } from '@/lib/format'
 import ImagenProducto from '@/components/ImagenProducto'
+import { actualizarProducto as guardarProducto } from '@/app/admin/productos/actions'
+
+async function actualizarProducto(...args: Parameters<typeof guardarProducto>) {
+  try {
+    return await guardarProducto(...args)
+  } catch {
+    return { error: { message: 'No se pudo confirmar el guardado. Recarga la página y revisa el producto antes de volver a intentarlo.' } }
+  }
+}
 
 export type Producto = {
   id: string; slug: string; nombre: string; diamantes: number
@@ -50,7 +59,6 @@ async function borrarAnterior(sb: ReturnType<typeof supabaseBrowser>, url: strin
 }
 
 export default function AdminProductos({ productos }: { productos: Producto[] }) {
-  const sb = supabaseBrowser()
   const router = useRouter()
   const [editando, setEditando] = useState<string | null>(null)
   const [precio, setPrecio] = useState('')
@@ -61,7 +69,7 @@ export default function AdminProductos({ productos }: { productos: Producto[] })
     if (cents === null || cents <= 0) return toast.error('Precio inválido.')
     if (cents === p.precio_cents) return setEditando(null)
 
-    const { error } = await sb.from('products').update({ precio_cents: cents }).eq('id', p.id)
+    const { error } = await actualizarProducto(p.id, { precio_cents: cents })
     if (error) return toast.error(mensajeError(error.message))
 
     setEditando(null)
@@ -70,7 +78,7 @@ export default function AdminProductos({ productos }: { productos: Producto[] })
   }
 
   async function alternar(p: Producto) {
-    const { error } = await sb.from('products').update({ activo: !p.activo }).eq('id', p.id)
+    const { error } = await actualizarProducto(p.id, { activo: !p.activo })
     if (error) return toast.error(mensajeError(error.message))
     toast(p.activo ? `${p.nombre} oculto de la tienda` : `${p.nombre} publicado`)
     router.refresh()
@@ -169,7 +177,7 @@ function CeldaImagen({ p }: { p: Producto }) {
 
     const url = await subirImagen(sb, p.id, file)
     if (url) {
-      const { error } = await sb.from('products').update({ imagen_url: url }).eq('id', p.id)
+      const { error } = await actualizarProducto(p.id, { imagen_url: url })
       if (error) toast.error(mensajeError(error.message))
       else {
         await borrarAnterior(sb, p.imagen_url)
@@ -184,7 +192,7 @@ function CeldaImagen({ p }: { p: Producto }) {
 
   async function quitar() {
     setOcupado(true)
-    const { error } = await sb.from('products').update({ imagen_url: null }).eq('id', p.id)
+    const { error } = await actualizarProducto(p.id, { imagen_url: null })
     if (error) toast.error(mensajeError(error.message))
     else {
       await borrarAnterior(sb, p.imagen_url)
@@ -247,7 +255,10 @@ function FormNuevo({ onListo }: { onListo: () => void }) {
     if (!error && archivo) {
       const id = (data as { id: string }).id
       const url = await subirImagen(sb, id, archivo)
-      if (url) await sb.from('products').update({ imagen_url: url }).eq('id', id)
+      if (url) {
+        const { error: imagenError } = await actualizarProducto(id, { imagen_url: url })
+        if (imagenError) toast.error(`Producto creado, pero la imagen no se guardó: ${mensajeError(imagenError.message)}`)
+      }
     }
     setGuardando(false)
 

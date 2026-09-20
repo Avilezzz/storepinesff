@@ -113,7 +113,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
         <span className="text-xs text-tenue">{productos.length} opciones</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
         {productos.map((p, i) => {
           const s = stock[p.id] ?? 0
           const agotado = s <= 0
@@ -123,8 +123,8 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
 
           return (
             <article key={p.id}
-              className={`tarjeta group flex flex-col overflow-hidden transition ${
-                agotado ? 'border-error/40' : 'border-ok/40 hover:border-ok/60'}`}>
+              className={`tarjeta group flex flex-col overflow-hidden p-2 transition-all hover:-translate-y-0.5 hover:shadow-lg sm:p-2.5 ${
+                agotado ? 'border-error/35' : 'hover:border-marca/45'}`}>
               {/* La imagen es la card: el arte ya trae la cantidad de diamantes,
                   así que abajo solo queda el precio y la acción. */}
               {/* Toda el arte abre el detalle: es el área grande y obvia de
@@ -133,7 +133,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                 type="button"
                 onClick={() => setDetalle(p)}
                 aria-label={`Ver detalle de ${p.nombre}`}
-                className="relative block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-marca"
+                className="relative block w-full cursor-pointer overflow-hidden rounded-xl border border-linea bg-panel2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
               >
                 <ImagenProducto
                   url={p.imagen_url}
@@ -142,7 +142,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                   iconoSize={44}
                   sizes="(min-width: 1024px) 260px, (min-width: 640px) 32vw, 46vw"
                   zoom={!agotado}
-                  className="aspect-4/5 w-full"
+                  className="aspect-4/5 w-full rounded-xl"
                 />
 
                 {/* Agotado conserva el color del arte: se marca con un velo
@@ -156,9 +156,9 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                     Agotado
                   </span>
                 ) : (
-                  <span className={`chip absolute left-2 top-2 backdrop-blur-sm font-bold ${
-                    s <= 5 ? 'bg-ok/30 text-ok ring-1 ring-ok/40' : 'bg-base/70 text-ok'}`}>
-                    {`${s} disp.`}
+                  <span className={`chip absolute left-2 top-2 border backdrop-blur-md font-semibold ${
+                    s <= 5 ? 'border-alerta/40 bg-base/85 text-alerta' : 'border-linea/70 bg-base/85 text-ok'}`}>
+                    {s <= 5 ? `Últimos ${s}` : 'Disponible'}
                   </span>
                 )}
 
@@ -167,14 +167,8 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                 </span>
               </button>
 
-              <div className="flex flex-1 flex-col justify-end gap-2.5 p-3">
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="cifra text-lg font-semibold text-marca sm:text-xl">{usd(p.precio_cents)}</p>
-                  <p className="cifra text-[11px] text-tenue">
-                    {p.diamantes.toLocaleString('es-EC')} <span className="sr-only">diamantes</span>
-                    <span aria-hidden> 💎</span>
-                  </p>
-                </div>
+              <div className="flex flex-1 flex-col justify-end gap-2.5 px-1 pb-1 pt-3 sm:px-1.5">
+                <p className="cifra text-center text-xl font-bold text-marca sm:text-2xl">{usd(p.precio_cents)}</p>
 
                 {agotado ? (
                   <button
@@ -183,7 +177,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                     aria-label={pedido
                       ? `Ya pediste que avisemos cuando vuelva ${p.nombre}`
                       : `Avisarme cuando vuelva ${p.nombre}`}
-                    className={`btn w-full ${pedido ? 'btn-suave' : 'btn-primario'}`}
+                    className={`btn w-full py-2 text-xs sm:text-sm ${pedido ? 'btn-suave' : 'btn-primario'}`}
                   >
                     {enCurso ? <Loader2 size={15} className="animate-spin" />
                       : pedido ? <><BellRing size={15} className="text-ok" /> Te avisaremos</>
@@ -194,7 +188,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
                     onClick={() => agregar(p)}
                     disabled={enCurso || cargando}
                     aria-label={`Agregar ${p.nombre} al carrito`}
-                    className={`btn w-full ${recien ? 'btn-suave' : 'btn-primario'}`}
+                    className={`btn w-full py-2 text-xs sm:text-sm ${recien ? 'btn-suave' : 'btn-primario'}`}
                   >
                     {enCurso ? <Loader2 size={15} className="animate-spin" />
                       : recien ? <><Check size={15} className="text-ok" /> Agregado</>

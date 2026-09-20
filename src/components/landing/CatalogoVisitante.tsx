@@ -26,7 +26,7 @@ export default function CatalogoVisitante({ productos }: { productos: Producto[]
           </Link>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:mt-8 sm:grid-cols-3 sm:gap-3.5 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:mt-8 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
           {productos.map((p, idx) => (
             <motion.article
               key={p.id}
@@ -34,9 +34,9 @@ export default function CatalogoVisitante({ productos }: { productos: Producto[]
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-20px' }}
               transition={{ duration: 0.35, delay: Math.min(idx * 0.05, 0.3), ease: 'easeOut' }}
-              className="tarjeta group flex flex-col overflow-hidden transition-all hover:border-marca/40"
+              className="tarjeta group flex flex-col overflow-hidden p-2 transition-all hover:-translate-y-0.5 hover:border-marca/45 hover:shadow-lg sm:p-2.5"
             >
-              <div className="relative">
+              <div className="relative overflow-hidden rounded-xl border border-linea bg-panel2">
                 <ImagenProducto
                   url={p.imagen_url}
                   alt={p.nombre}
@@ -44,27 +44,23 @@ export default function CatalogoVisitante({ productos }: { productos: Producto[]
                   iconoSize={36}
                   sizes="(min-width: 1024px) 260px, (min-width: 640px) 32vw, 46vw"
                   zoom
-                  className="aspect-4/5 w-full"
+                  className="aspect-4/5 w-full rounded-xl"
                 />
 
-                <span className="chip absolute left-1.5 top-1.5 bg-base/85 text-[10px] font-semibold text-ok backdrop-blur-sm sm:left-2 sm:top-2 sm:text-xs">
+                <span className={`chip absolute left-2 top-2 border bg-base/85 text-[10px] font-semibold backdrop-blur-md sm:text-xs ${
+                  p.stock_disponible > 0 ? 'border-linea/70 text-ok' : 'border-error/40 text-error'}`}>
                   {p.stock_disponible > 0 ? 'Disponible' : 'Agotado'}
                 </span>
               </div>
 
-              <div className="flex flex-1 flex-col justify-end gap-2 p-2.5 sm:gap-2.5 sm:p-3">
-                <div className="flex items-baseline justify-between gap-1.5">
-                  <p className="cifra text-base font-bold text-marca sm:text-xl">
-                    {usd(p.precio_cents)}
-                  </p>
-                  <p className="cifra text-[10px] font-medium text-fuerte sm:text-xs">
-                    {p.diamantes.toLocaleString('es-EC')} 💎
-                  </p>
-                </div>
+              <div className="flex flex-1 flex-col justify-end gap-2.5 px-1 pb-1 pt-3 sm:px-1.5">
+                <p className="cifra text-center text-xl font-bold text-marca sm:text-2xl">
+                  {usd(p.precio_cents)}
+                </p>
 
                 <Link
                   href={`/registro`}
-                  className="btn btn-primario w-full py-1.5 text-xs font-semibold sm:py-2 sm:text-sm"
+                  className="btn btn-primario w-full py-2 text-xs font-semibold sm:text-sm"
                 >
                   Comprar pin <ArrowRight size={13} />
                 </Link>

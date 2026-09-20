@@ -120,10 +120,6 @@ export default function ModalProducto({
 
               <div className="min-w-0 flex-1">
                 <h3 className="titulo truncate text-lg sm:whitespace-normal sm:text-[1.375rem]">{p.nombre}</h3>
-                <p className="cifra mt-0.5 text-sm text-tenue">
-                  {p.diamantes.toLocaleString('es-EC')} diamantes
-                  <span aria-hidden> 💎</span>
-                </p>
                 <div className="mt-1.5 flex items-baseline gap-2 sm:hidden">
                   <p className="cifra text-2xl font-semibold text-marca">{usd(p.precio_cents)}</p>
                   <span className="text-[11px] text-tenue">por pin</span>

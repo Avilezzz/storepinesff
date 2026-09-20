@@ -15,6 +15,7 @@ type Props = {
   stock: number
   ocupado: boolean
   pedido: boolean
+  pvp: number
   onAgregar: (p: Producto, cantidad: number) => unknown
   onSolicitar: (p: Producto) => unknown
   onCerrar: () => void
@@ -28,7 +29,7 @@ type Props = {
  * En móvil sube desde abajo y en escritorio se centra, igual que `Dialogo`.
  */
 export default function ModalProducto({
-  producto, stock, ocupado, pedido, onAgregar, onSolicitar, onCerrar,
+  producto, stock, ocupado, pedido, pvp, onAgregar, onSolicitar, onCerrar,
 }: Props) {
   const [cantidad, setCantidad] = useState(1)
   const cerrarRef = useRef<HTMLButtonElement>(null)
@@ -139,6 +140,12 @@ export default function ModalProducto({
             <div className="hidden items-baseline gap-2 sm:flex">
               <p className="cifra text-3xl font-semibold text-marca">{usd(p.precio_cents)}</p>
               <span className="text-xs text-tenue">por pin</span>
+            </div>
+
+            <div className="rounded-xl border border-ok/30 bg-ok/10 px-3.5 py-3">
+              <p className="text-xs text-tenue">PVP para tu cliente</p>
+              <p className="cifra mt-0.5 text-xl font-bold text-ok">{usd(pvp)}</p>
+              <p className="mt-1 text-xs text-tenue">Puedes vender este producto a ese precio y ganar {usd(pvp - p.precio_cents)} por pin.</p>
             </div>
 
             <div className="flex flex-wrap gap-2">

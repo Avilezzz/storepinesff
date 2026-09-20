@@ -16,6 +16,7 @@ export type Producto = {
   nombre: string
   diamantes: number
   precio_cents: number
+  pvp_sugerido_cents: number
   stock_disponible: number
   imagen_url: string | null
 }
@@ -31,6 +32,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
   const [listo, setListo] = useState<string | null>(null)
   const [pedidos, setPedidos] = useState<Set<string>>(new Set())
   const [detalle, setDetalle] = useState<Producto | null>(null)
+  const [pvpPropios, setPvpPropios] = useState<Record<string, number>>({})
 
   // El catálogo llega de una página cacheada, así que el stock puede venir
   // desfasado. Realtime lo corrige al montar y con cada compra ajena.
@@ -56,9 +58,14 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
   useEffect(() => {
     if (!uid) return setPedidos(new Set())
     void (async () => {
-      const { data } = await sb.from('product_requests').select('product_id').eq('user_id', uid)
+      const [{ data }, { data: precios }] = await Promise.all([
+        sb.from('product_requests').select('product_id').eq('user_id', uid),
+        sb.from('reseller_prices').select('product_id, pvp_cents').eq('user_id', uid),
+      ])
       const filas = data as { product_id: string }[] | null
       if (filas) setPedidos(new Set(filas.map((f) => f.product_id)))
+      const pvp = precios as { product_id: string; pvp_cents: number }[] | null
+      if (pvp) setPvpPropios(Object.fromEntries(pvp.map((x) => [x.product_id, x.pvp_cents])))
     })()
   }, [sb, uid])
 
@@ -120,6 +127,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
           const enCurso = ocupado === p.id
           const recien = listo === p.id
           const pedido = pedidos.has(p.id)
+          const pvp = pvpPropios[p.id] ?? p.pvp_sugerido_cents
 
           return (
             <article key={p.id}
@@ -211,6 +219,7 @@ export default function Catalogo({ productos }: { productos: Producto[] }) {
         stock={detalle ? stock[detalle.id] ?? 0 : 0}
         ocupado={ocupado === detalle?.id}
         pedido={detalle ? pedidos.has(detalle.id) : false}
+        pvp={detalle ? pvpPropios[detalle.id] ?? detalle.pvp_sugerido_cents : 0}
         onAgregar={agregar}
         onSolicitar={solicitar}
         onCerrar={() => setDetalle(null)}

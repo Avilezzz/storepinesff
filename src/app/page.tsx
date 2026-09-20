@@ -10,7 +10,7 @@ export const revalidate = 60
 export default async function Home() {
   const { data } = await supabasePublic()
     .from('products')
-    .select('id, slug, nombre, diamantes, precio_cents, stock_disponible, imagen_url')
+    .select('id, slug, nombre, diamantes, precio_cents, pvp_sugerido_cents, stock_disponible, imagen_url')
     .eq('activo', true)
     .order('orden')
 

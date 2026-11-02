@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { cookieDeSesion } from '@/lib/cookies-sesion'
+import { respuestaMantenimiento } from '@/lib/mantenimiento'
 
 /** Rutas que exigen sesión iniciada. */
 const PRIVADAS = ['/billetera', '/recargar', '/mis-compras', '/admin', '/cuenta',
@@ -9,6 +10,16 @@ const PRIVADAS = ['/billetera', '/recargar', '/mis-compras', '/admin', '/cuenta'
 const SIN_PERFIL_OK = ['/completar-perfil']
 
 export async function middleware(req: NextRequest) {
+  const mantenimiento = respuestaMantenimiento(req)
+  if (mantenimiento) return mantenimiento
+
+  // Conserva las exclusiones originales cuando el sitio vuelve a abrir.
+  const pathname = req.nextUrl.pathname
+  if (pathname.startsWith('/_next/static') || pathname.startsWith('/_next/image')
+      || pathname === '/favicon.ico' || /\.(?:svg|png|jpg|jpeg|webp|gif|ico)$/.test(pathname)) {
+    return NextResponse.next({ request: req })
+  }
+
   let res = NextResponse.next({ request: req })
 
   const supabase = createServerClient(
@@ -66,6 +77,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Se salta estáticos e imágenes: el middleware solo corre donde importa la sesión.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|webp|gif|ico)$).*)'],
+  // El cierre cubre todas las rutas, APIs, Server Actions y enlaces directos.
+  matcher: ['/:path*'],
 }

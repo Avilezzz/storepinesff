@@ -48,6 +48,24 @@ bun run build    # build de producción
 
 ## Cómo se opera
 
+### Cierre temporal del sitio
+
+El sitio queda **en pausa por defecto**. Todas las páginas, incluido el panel de
+administración, muestran «Nos vemos pronto». Las APIs y los envíos de formularios
+responden con `503` antes de ejecutar su lógica. El aviso no monta la tienda ni
+consulta sesiones o datos, y se entrega sin caché.
+
+Para reabrir, configura `MAINTENANCE_MODE=false` en el entorno del servidor y
+vuelve a desplegar o reiniciar la aplicación. Para cerrarlo de nuevo, elimina esa
+variable o cambia su valor a `true` y vuelve a desplegar/reiniciar. Publicar este
+cambio es necesario para que la pausa se aplique al dominio de producción.
+
+Esta pausa cierra los accesos servidos por la web. No pausa el proyecto Supabase
+ni revoca sesiones: clientes externos o pestañas que ya tenían la aplicación
+cargada pueden seguir usando sus conexiones directas a Supabase.
+
+### Operación habitual
+
 | Tarea | Dónde |
 |---|---|
 | Cargar pines nuevos | `/admin/codigos` — pega un código por línea, los repetidos se ignoran |
